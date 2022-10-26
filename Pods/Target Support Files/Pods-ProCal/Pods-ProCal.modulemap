@@ -1,0 +1,6 @@
+framework module Pods_ProCal {
+  umbrella header "Pods-ProCal-umbrella.h"
+
+  export *
+  module * { export * }
+}
