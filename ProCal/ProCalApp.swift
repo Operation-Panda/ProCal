@@ -306,6 +306,127 @@ struct Check: Identifiable, Codable {
     var assignm: Assignment
 }
 
+final class CheckController: ObservableObject {
+    @Published var smth: [Check] = []
+    
+    private lazy var databasePath: DatabaseReference? = {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return nil
+        }
+        let ref = Database.database().reference().child("users/\(uid)/check")
+        return ref
+    }()
+    
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+    
+    func listenForChange() {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        databasePath.observe(.childAdded) {
+            [weak self] snapshot in guard let self = self, var json = snapshot.value as? [String: Any]
+            else {
+                return
+            }
+            json["id"] = snapshot.key
+            do {
+                let settingData = try JSONSerialization.data(withJSONObject: json)
+                let newsetting = try self.decoder.decode(Check.self, from: settingData)
+                
+                self.smth.append(Check(title: newsetting.title, isChecked: newsetting.isChecked, time: newsetting.time, assignm: newsetting.assignm))
+            } catch {
+                print("an error occurred", error)
+            }
+        }
+    }
+    
+    func stopListeningChange() {
+        databasePath?.removeAllObservers()
+    }
+    
+    func AddChecks() {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        do {
+            databasePath.removeValue()
+            var components_st1 = DateComponents()
+            components_st1.year = 2022
+            components_st1.month = 11
+            components_st1.day = 1
+            components_st1.hour = 8
+            components_st1.minute = 0
+            
+            var components_st2 = DateComponents()
+            components_st2.year = 2022
+            components_st2.month = 11
+            components_st2.day = 1
+            components_st2.hour = 9
+            components_st2.minute = 0
+            
+            smth.append(Check(title: "thesis1 before (8-9am)", isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: Assignment(assignment_name: "Thesis", start_date: Date(), end_date: Date(), estimated_time: 0, time_worked_on: 0)))
+            
+            components_st1.hour = 16
+            components_st1.minute = 0
+            
+            components_st2.hour = 17
+            components_st2.minute = 0
+            
+            smth.append(Check(title: "thesis1 after (4-5pm)", isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: Assignment(assignment_name: "Thesis", start_date: Date(), end_date: Date(), estimated_time: 0, time_worked_on: 0)))
+            
+            components_st1.hour = 9
+            components_st1.minute = 0
+            
+            components_st2.hour = 10
+            components_st2.minute = 0
+            
+            smth.append(Check(title: "thesis2 before (9-10am)", isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: Assignment(assignment_name: "Thesis", start_date: Date(), end_date: Date(), estimated_time: 0, time_worked_on: 0)))
+            
+            components_st1.hour = 20
+            components_st1.minute = 0
+            
+            components_st2.hour = 21
+            components_st2.minute = 0
+            
+            smth.append(Check(title: "thesis2 after (8-9pm)", isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: Assignment(assignment_name: "Thesis", start_date: Date(), end_date: Date(), estimated_time: 0, time_worked_on: 0)))
+            
+            components_st2.day = 2
+            components_st1.hour = 8
+            components_st1.minute = 0
+            
+            components_st2.hour = 9
+            components_st2.minute = 0
+            
+            smth.append(Check(title: "physics lab before (8-9am)", isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: Assignment(assignment_name: "Physics Lab", start_date: Date(), end_date: Date(), estimated_time: 0, time_worked_on: 0)))
+            
+            components_st2.day = 2
+            components_st1.hour = 20
+            components_st1.minute = 0
+            
+            components_st2.hour = 21
+            components_st2.minute = 0
+            
+            smth.append(Check(title: "physics lab before (8-9pm)", isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: Assignment(assignment_name: "Physics Lab", start_date: Date(), end_date: Date(), estimated_time: 0, time_worked_on: 0)))
+            
+            for i in 0..<smth.count {
+                let data = try encoder.encode(smth[i])
+                let json = try JSONSerialization.jsonObject(with: data)
+                
+                let reference = databasePath.childByAutoId()
+
+                reference.setValue(json)
+                smth[i].id = reference.key!
+            }
+        } catch {
+            print("an error occurred", error)
+        }
+    }
+    
+}
+
 struct CheckView: View {
     @State var chec: Int
     @Binding var data: [Check]
@@ -314,29 +435,15 @@ struct CheckView: View {
     var body: some View {
         HStack {
            Button(action: {
-               var a: Assignment
-               if (data[chec].isChecked == true) {
-                   a = Assignment(assignment_name: data[chec].assignm.assignment_name, start_date: data[chec].assignm.start_date, end_date: data[chec].assignm.end_date, estimated_time: data[chec].assignm.estimated_time, time_worked_on: data[chec].assignm.time_worked_on - settings.time_work_sess)
-               } else {
-                   a = Assignment(assignment_name: data[chec].assignm.assignment_name, start_date: data[chec].assignm.start_date, end_date: data[chec].assignm.end_date, estimated_time: data[chec].assignm.estimated_time, time_worked_on: data[chec].assignm.time_worked_on + settings.time_work_sess)
-               }
-               
-               let temp2 = modelAssignmentController.AddAssignment(a: a)
-
                var d: [Check] = []
                for i in 0..<data.count {
-                   if data[i].assignm.id! == data[chec].assignm.id! {
-                       if i == chec {
-                           d.append(Check(title: data[i].title, isChecked: !data[i].isChecked, time: data[i].time, assignm: temp2))
-                       } else {
-                           d.append(Check(title: data[i].title, isChecked: data[i].isChecked, time: data[i].time, assignm: temp2))
-                       }
+                   if i == chec {
+                       d.append(Check(title: data[i].title, isChecked: !data[i].isChecked, time: data[i].time, assignm: data[i].assignm))
                    } else {
-                       d.append(data[i])
+                       d.append(Check(title: data[i].title, isChecked: data[i].isChecked, time: data[i].time, assignm: data[i].assignm))
                    }
                }
                data = d
-               modelAssignmentController.del(assign: data[chec].assignm)
            }) {
                ZStack {
                    Circle().stroke(Color.blue, lineWidth: 0.5).frame(width: 20, height: 20)
@@ -362,7 +469,7 @@ final class ScheduleController: ObservableObject {
     }
 }
 
-struct Assignment: Identifiable, Codable, Hashable {
+struct Assignment: Identifiable, Codable, Hashable, Equatable {
     var id: String?
     var assignment_name: String
     var start_date: Date
