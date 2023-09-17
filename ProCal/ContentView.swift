@@ -1169,7 +1169,7 @@ struct CalendarView: View {
                         }) {
                             ZStack{
                                 if i-6-getStartMonthPos(current_month, current_day) == getDay(0, 0) && getMonth(current_month, current_day) == getMonth(0, 0) && getYear(current_month, current_day) == getYear(0, 0) {
-                                    Circle().frame(width: UIScreen.main.bounds.width/10, height: UIScreen.main.bounds.width/10).foregroundColor(.blue).overlay(Circle().stroke(.black, lineWidth: 0.5)
+                                    Circle().frame(width: UIScreen.main.bounds.width/10, height: UIScreen.main.bounds.width/10).foregroundColor(Color("LightBlue")).overlay(Circle().stroke(.black, lineWidth: 0.5)
                                     )
                                 } else {
                                     Circle().frame(width: UIScreen.main.bounds.width/10, height: UIScreen.main.bounds.width/10).foregroundColor(.white).overlay(Circle().stroke(.black, lineWidth: 0.5))
@@ -1216,6 +1216,8 @@ struct ContentView: View {
     @ObservedObject var modelControllerPrefTimes = PrefTimePreferencesController()
     @ObservedObject var modelControllerUnavailTimes = UnavailTimePreferencesController()
     @ObservedObject var modelCheckController = CheckController()
+    @ObservedObject var sleepManager = SleepDataPointsManager()
+    @ObservedObject var socialManager = SocialDataPointsManager()
     
     var body: some View {
         if (intro_ended) {
@@ -1239,8 +1241,16 @@ struct ContentView: View {
                             Label("calendar", systemImage: "calendar")
                         }
                         
+                        trackerView(sleepManager: sleepManager, socialManager: socialManager).tabItem {
+                            Label("tracker", systemImage: "chart.line.uptrend.xyaxis.circle")
+                        }
+                        
                         ScheduleView(event_add_button: $event_add_button, assignment_add_button: $assignment_add_button, button_pressed: $button_pressed, special: $special, id: $id, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, CheckController: modelCheckController).tabItem {
                             Label("to-do", systemImage: "list.bullet")
+                        }
+                        
+                        BadgeView().tabItem {
+                            Label("badges", systemImage: "firewall")
                         }
                         
                         SettingsView(modelControllerWorkPreferences: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, modelControllerAssignments: modelControllerAssignments, CheckController: modelCheckController).tabItem {

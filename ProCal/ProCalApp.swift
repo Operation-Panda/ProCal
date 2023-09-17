@@ -153,7 +153,7 @@ final class PrefTimePreferencesController: ObservableObject {
         databasePath?.removeAllObservers()
     }
 }
-
+//LOOK HERE
 final class UnavailTimePreferencesController: ObservableObject {
     @Published var unavailable: [timerange] = []
     
@@ -832,6 +832,427 @@ final class EventsController: ObservableObject {
         
         self.events.removeAll(where: {$0.id == event.id})
         databasePath.child(event.id!).removeValue()
+    }
+}
+
+
+final class SleepDataPointsManager: ObservableObject {
+    @Published var sleepDataPoints = [SleepDataPoints]()
+
+    private lazy var databasePath: DatabaseReference? = {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return nil
+        }
+        let ref = Database.database().reference().child("users/\(uid)/sleepdatapoints")
+        return ref
+    }()
+    
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+    
+    func listenForSleepPoints() {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        databasePath.observe(.childAdded) {
+            [weak self] snapshot  in guard let self = self, var json = snapshot.value as? [String: Any]
+            else {
+                return
+            }
+            json["id"] = snapshot.key
+            do {
+                let sleepData = try JSONSerialization.data(withJSONObject: json)
+                let SD = try self.decoder.decode(SleepDataPoints.self, from: sleepData)
+                if !self.sleepDataPoints.contains(where: {$0.id == SD.id}) {
+                    self.sleepDataPoints.append(SD)
+                }
+            } catch {
+                print("an error occurred", error)
+            }
+        }
+    }
+    
+    func stopListening() {
+        databasePath?.removeAllObservers()
+    }
+    
+    func AddSleepPoint(date: Date, SleepHours: Int, feeling: Int, productivity: Int) {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        do {
+            var SDP = SleepDataPoints(createdAt: date, SleepHours: SleepHours, feeling: feeling, productivity: productivity)
+            
+            let data = try self.encoder.encode(SDP)
+            let json = try JSONSerialization.jsonObject(with: data)
+            
+            let reference = databasePath.childByAutoId()
+
+            reference.setValue(json)
+            SDP.id = reference.key
+            self.sleepDataPoints.append(SDP)
+        } catch {
+            print("an error occurred", error)
+        }
+    }
+    
+    func delByDay(day: Int, month: Int, year: Int) {
+        let calendar = Calendar.current
+        let data = sleepDataPoints.filter { dataPoint in
+            let components = calendar.dateComponents([.year, .month, .day], from: dataPoint.createdAt)
+            return components.day == day && components.month == month && components.year == year
+        }
+
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        for SDP in data {
+            self.sleepDataPoints.removeAll(where: {$0 == SDP})
+            databasePath.child(SDP.id!).removeValue()
+        }
+    }
+    func del(data: SleepDataPoints) {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        self.sleepDataPoints.removeAll(where: {$0.id == data.id})
+        databasePath.child(data.id!).removeValue()
+    }
+}
+
+final class SocialDataPointsManager: ObservableObject {
+    @Published var socialDataPoints = [SocialDataPoints]()
+
+    private lazy var databasePath: DatabaseReference? = {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return nil
+        }
+        let ref = Database.database().reference().child("users/\(uid)/sleepdatapoints")
+        return ref
+    }()
+    
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+    
+    func listenForSocialPoints() {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        databasePath.observe(.childAdded) {
+            [weak self] snapshot  in guard let self = self, var json = snapshot.value as? [String: Any]
+            else {
+                return
+            }
+            json["id"] = snapshot.key
+            do {
+                let socialData = try JSONSerialization.data(withJSONObject: json)
+                let SD = try self.decoder.decode(SocialDataPoints.self, from: socialData)
+                if !self.socialDataPoints.contains(where: {$0.id == SD.id}) {
+                    self.socialDataPoints.append(SD)
+                }
+            } catch {
+                print("an error occurred", error)
+            }
+        }
+    }
+    
+    func stopListening() {
+        databasePath?.removeAllObservers()
+    }
+    
+    func AddSocialPoint(date: Date, socialHours: Int, feeling: Int, productivity: Int) {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        do {
+            var SDP = SocialDataPoints(createdAt: date, SocialHours: socialHours, feeling: feeling, productivity: productivity)
+            
+            let data = try self.encoder.encode(SDP)
+            let json = try JSONSerialization.jsonObject(with: data)
+            
+            let reference = databasePath.childByAutoId()
+
+            reference.setValue(json)
+            SDP.id = reference.key
+            self.socialDataPoints.append(SDP)
+        } catch {
+            print("an error occurred", error)
+        }
+    }
+    
+    func delByDay(day: Int, month: Int, year: Int) {
+        let calendar = Calendar.current
+        let data = socialDataPoints.filter { dataPoint in
+            let components = calendar.dateComponents([.year, .month, .day], from: dataPoint.createdAt)
+            return components.day == day && components.month == month && components.year == year
+        }
+
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        for SDP in data {
+            self.socialDataPoints.removeAll(where: {$0 == SDP})
+            databasePath.child(SDP.id!).removeValue()
+        }
+    }
+    
+    func del(data: SocialDataPoints) {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        self.socialDataPoints.removeAll(where: {$0.id == data.id})
+        databasePath.child(data.id!).removeValue()
+    }
+}
+
+final class BadgeManager: ObservableObject {
+    @Published var currentChallenges = [ChallengeBadge]()
+    @Published var currentAchievements = [AchievementBadge]()
+    
+    @Published var challenges = [
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "January"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "February"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "March"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "April"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "May"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "June"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "July"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "August"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "September"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "October"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "November"),
+        ChallengeBadge(badgeType: .month, rewardType: .assignment, imageName: "December"),
+        ChallengeBadge(badgeType: .special, rewardType: .assignment, imageName: "firstAssignmentAdded"),
+        ChallengeBadge(badgeType: .special, rewardType: .event, imageName: "firstEventAdded"),
+        ChallengeBadge(badgeType: .special, rewardType: .assignment, imageName: "firstAssignmentCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .event, imageName: "firstEventCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .assignment, imageName: "10AssignmentsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .event, imageName: "10EventsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .assignment, imageName: "25AssignmentsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .event, imageName: "25EventsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .assignment, imageName: "50AssignmentsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .event, imageName: "50EventsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .assignment, imageName: "75AssignmentsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .event, imageName: "75EventsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .assignment, imageName: "100AssignmentsCompleted"),
+        ChallengeBadge(badgeType: .special, rewardType: .event, imageName: "100EventsCompleted")
+    ]
+    @Published var achievements = [
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "January"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "February"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "March"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "April"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "May"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "June"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "July"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "August"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "September"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "October"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "November"),
+        AchievementBadge(badgeType: .month, rewardType: .assignment, imageName: "December"),
+        AchievementBadge(badgeType: .special, rewardType: .assignment, imageName: "firstAssignmentAdded"),
+        AchievementBadge(badgeType: .special, rewardType: .event, imageName: "firstEventAdded"),
+        AchievementBadge(badgeType: .special, rewardType: .assignment, imageName: "firstAssignmentCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .event, imageName: "firstEventCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .assignment, imageName: "10AssignmentsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .event, imageName: "10EventsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .assignment, imageName: "25AssignmentsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .event, imageName: "25EventsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .assignment, imageName: "50AssignmentsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .event, imageName: "50EventsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .assignment, imageName: "75AssignmentsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .event, imageName: "75EventsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .assignment, imageName: "100AssignmentsCompleted"),
+        AchievementBadge(badgeType: .special, rewardType: .event, imageName: "100EventsCompleted")
+    ]
+    
+    
+    
+    private lazy var databasePath: DatabaseReference? = {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return nil
+        }
+        let ref = Database.database().reference().child("users/\(uid)/badges")
+        return ref
+    }()
+    
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+    
+    func listenForChallengeBadges() {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        databasePath.observe(.childAdded) {
+            [weak self] snapshot  in guard let self = self, var json = snapshot.value as? [String: Any]
+            else {
+                return
+            }
+            json["id"] = snapshot.key
+            do {
+                let data = try JSONSerialization.data(withJSONObject: json)
+                let SD = try self.decoder.decode(ChallengeBadge.self, from: data)
+                if !self.currentChallenges.contains(where: {$0.id == SD.id}) {
+                    self.challenges.append(SD)
+                    self.achievements.append(AchievementBadge(badgeType: SD.badgeType, rewardType: SD.rewardType, imageName: SD.imageName))
+                }
+            } catch {
+                print("an error occurred", error)
+            }
+        }
+    }
+    
+    func listenForAchievementBadges() {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        databasePath.observe(.childAdded) {
+            [weak self] snapshot  in guard let self = self, var json = snapshot.value as? [String: Any]
+            else {
+                return
+            }
+            json["id"] = snapshot.key
+            do {
+                let data = try JSONSerialization.data(withJSONObject: json)
+                let SD = try self.decoder.decode(AchievementBadge.self, from: data)
+                if !self.currentAchievements.contains(where: {$0.id == SD.id}) {
+                    self.challenges.append(ChallengeBadge(badgeType: SD.badgeType, rewardType: SD.rewardType, imageName: SD.imageName))
+                    self.achievements.append(SD)
+                }
+            } catch {
+                print("an error occurred", error)
+            }
+        }
+    }
+    /*
+    func listenForAchievementBadges() {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        databasePath.observe(.childAdded) {
+            [weak self] snapshot  in guard let self = self, var json = snapshot.value as? [String: Any]
+            else {
+                return
+            }
+            json["id"] = snapshot.key
+            do {
+                let data = try JSONSerialization.data(withJSONObject: json)
+                let SD = try self.decoder.decode(AchievementBadge.self, from: data)
+                if !self.achievements.contains(where: {$0.id == SD.id}) {
+                    self.achievements.append(SD)
+                }
+            } catch {
+                print("an error occurred", error)
+            }
+        }
+    }
+     
+     func listenForAchievementBadges() {
+         guard let databasePath = databasePath else {
+             return
+         }
+         
+         // Use .childChanged to listen to changes to child nodes
+         databasePath.observe(.childChanged) { [weak self] snapshot in
+             // Safely unwrap self and ensure the snapshot's value can be cast as a dictionary of type [String: Any]
+             guard let strongSelf = self, var json = snapshot.value as? [String: Any] else {
+                 return
+             }
+             // Include the unique key of the snapshot as an identifier for the JSON object
+             json["id"] = snapshot.key
+             
+             do {
+                 // Serialize the JSON object into Data
+                 let data = try JSONSerialization.data(withJSONObject: json)
+                 // Decode the Data back into an instance of AchievementBadge using JSONDecoder
+                 let achievementBadge = try strongSelf.decoder.decode(AchievementBadge.self, from: data)
+                 // Call a method to handle the logic when an achievement badge has changed
+                 strongSelf.achievementIsUnAchieved(AB: achievementBadge)
+
+             } catch {
+                 // Handle and print any errors that occur during serialization or decoding
+                 print("An error occurred:", error)
+             }
+         }
+     }
+
+    */
+    func stopListening() {
+        databasePath?.removeAllObservers()
+    }
+    
+    func AchieveABadge(badge: ChallengeBadge) {
+        var CB = badge
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        do {
+            
+            let data = try self.encoder.encode(CB)
+            let json = try JSONSerialization.jsonObject(with: data)
+            
+            let reference = databasePath.childByAutoId()
+
+            reference.setValue(json)
+            CB.id = reference.key
+            self.currentChallenges.append(CB)
+            self.achievements.append(AchievementBadge(badgeType: CB.badgeType, rewardType: CB.rewardType, imageName: CB.imageName))
+        } catch {
+            print("an error occurred", error)
+        }
+    }
+    
+    func UnAchieveABadge(badge: ChallengeBadge) {
+        var AB = badge
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        do {
+            
+            let data = try self.encoder.encode(AB)
+            let json = try JSONSerialization.jsonObject(with: data)
+            
+            let reference = databasePath.childByAutoId()
+
+            reference.setValue(json)
+            AB.id = reference.key
+            self.challenges.append(AB)
+        } catch {
+            print("an error occurred", error)
+        }
+    }
+    
+    func achieveByImageName(name: String) {
+        for index in challenges.indices {
+            if challenges[index].imageName == name {
+                challengeIsAchieved(CB: challenges[index])
+            }
+        }
+    }
+    
+    func challengeIsAchieved(CB: ChallengeBadge) {
+        let index = challenges.firstIndex(of: CB)!
+        challenges[index].stillAChallenge = false
+        achievements[index].stillAnAchievement = true
+    }
+    
+    func achievementIsUnAchieved(AB: AchievementBadge) {
+        let index = achievements.firstIndex(of: AB)!
+        challenges[index].stillAChallenge = true
+        achievements[index].stillAnAchievement = false
     }
 }
 
