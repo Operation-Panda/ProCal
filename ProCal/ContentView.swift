@@ -91,17 +91,111 @@ struct GoogleSignInButton: UIViewRepresentable {
     }
 }
 
-struct StartView: View {
-    @EnvironmentObject var viewModel: AuthenticationViewModel
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (1, 1, 1, 0)
+        }
+
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
+
+struct IntroFlash: View {
+    @State private var textValue = "ProCal"
+    @Binding var intro_ended: Bool
     
     var body: some View {
-        VStack (spacing: 10) {
-            Text("ProCal").font(.largeTitle).fontWeight(.thin).padding(.top, UIScreen.main.bounds.height/4)
-            Text("log in").font(.title2).fontWeight(.ultraLight)
-            GoogleSignInButton().padding().onTapGesture {
-                viewModel.signIn()
+        ZStack {
+            Color(hex: "FFFFFF").ignoresSafeArea()
+            VStack {
+                Text(textValue).font(.custom("MoreSugarThin", size: 90)).foregroundColor(Color.blue).id("help" + textValue).padding()
+                    .onAppear {
+                        withAnimation (.easeInOut(duration: 5)) {
+                            self.textValue = ""
+                            intro_ended = true
+                        }
+                    }
             }
-            Spacer()
+        }
+    }
+}
+
+struct SignInPage: View {
+    @EnvironmentObject var viewModel: AuthenticationViewModel
+    @State private var username: String = ""
+    @State private var password: String = ""
+    @State private var re_password: String = ""
+    @State private var signvslog: Bool = false
+    var body: some View {
+        ZStack {
+            VStack {
+                HStack(spacing: 7) {
+                    Button(action: {signvslog = !signvslog; username = ""; password = ""; re_password = ""}, label: {Text("sign up").font(.custom("MoreSugarThin", size: 20)).foregroundColor((signvslog == false) ? Color.blue : Color.gray)})
+                    
+                    Text ("  |  ").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
+                    
+                    Button(action: {signvslog = !signvslog; username = ""; password = ""; re_password = ""}, label: {Text("log in").font(.custom("MoreSugarThin", size: 20)).foregroundColor((signvslog == true) ? Color.blue : Color.gray)})
+                }
+                
+                if (signvslog == false) {
+                    Text("welcome!").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
+                    
+                    TextField("", text: $username, prompt: Text("username").foregroundColor(Color(hex: "E8E0D5"))).foregroundColor(Color.blue).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20))
+                    
+                    Divider().frame(height: 1).padding(.horizontal, 30)
+                    
+                    SecureField("", text: $password, prompt: Text("password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
+                    
+                    Divider().frame(height: 1).padding(.horizontal, 30)
+                    
+                    SecureField("", text: $re_password, prompt: Text("confirm password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
+                    
+                    Divider().frame(height: 1).padding(.horizontal, 30)
+                    
+                    
+                    Text("sign up").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color(hex: "#FFFFFF")).frame(width: 300, height: 40).background(RoundedRectangle(cornerRadius: 30).fill(Color.blue).frame(width: 300, height: 40)).padding(.top, 30)
+                } else {
+                    Text("hi!").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
+                    
+                    TextField("", text: $username, prompt: Text("username").foregroundColor(Color(hex: "#E8E0D5"))).foregroundColor(Color.blue).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20))
+                    
+                    Divider().frame(height: 1).padding(.horizontal, 30)
+                    
+                    SecureField("", text: $password, prompt: Text("password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
+                    
+                    Divider().frame(height: 1).padding(.horizontal, 30)
+                    
+                    Text("log in").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color(hex: "#FFFFFF")).frame(width: 300, height: 40).background(RoundedRectangle(cornerRadius: 30).fill(Color.blue).frame(width: 300, height: 40)).padding(.top, 30)
+                }
+                
+                Text("or use").font(.custom("MoreSugarThin", size: 17)).padding(.top, 20).foregroundColor(Color.blue)
+                
+                HStack(spacing: 15){
+                    Button(action: viewModel.signIn, label: {
+                        Image("apple").resizable().padding().foregroundColor(.white).clipShape(Circle()).frame(width: 70, height: 75)})
+                    
+                    Button(action: viewModel.signIn, label: {
+                        Image("google").resizable().padding().foregroundColor(.white).clipShape(Circle()).frame(width: 75, height: 75)})
+                }
+            }
         }
     }
 }
@@ -322,9 +416,7 @@ struct WorkView: View {
     @ObservedObject var modelControllerWork: WorkPreferencesController
     @ObservedObject var modelControllerPrefTimes: PrefTimePreferencesController
     @ObservedObject var modelControllerUnavailTimes: UnavailTimePreferencesController
-    
-    @Binding var checkListData: [Check]
-    @State var times: [timerange]
+    @ObservedObject var CheckController: CheckController
     
     var body: some View {
         VStack (spacing: 3) {
@@ -346,84 +438,9 @@ struct WorkView: View {
             HStack {
                 Button(action: {
                     self.current_day -= 1;
-                    let dd = DateFormatter()
-                    dd.dateStyle = .medium
-                    dd.timeStyle = .medium
-                    
-                    checkListData = []
-                    
-                    let temp_assign = modelControllerAssignments.assignments.filter{ $0.end_date > date(current_month, current_day) && Calendar.current.component(.day, from: $0.end_date) != getDay(current_month, current_day)}.sorted(by: {$0.end_date.compare($1.end_date) == .orderedAscending})
-                    
-                    var current_sess = 0
-                    var min_left = modelControllerWork.time_work_sess
-                    var components_st1 = DateComponents()
-                    components_st1.year = getYear(current_month, current_day)
-                    components_st1.month = getMonth(current_month, current_day)
-                    components_st1.day = getDay(current_month, current_day)
-                    
-                    var components_st2 = DateComponents()
-                    components_st2.year = getYear(current_month, current_day)
-                    components_st2.month = getMonth(current_month, current_day)
-                    components_st2.day = getDay(current_month, current_day)
-                    
-                    for t in temp_assign {
-                        var gt = 0
-                        
-                        if t.time_worked_on >= t.estimated_time {
-                            continue
-                        }
-                        
-                        while (min_left < t.estimated_time-gt) {
-                            gt += min_left
-                            min_left = modelControllerWork.time_work_sess
-                            
-                            components_st1.hour = Calendar.current.component(.hour, from: times[current_sess].start_time)
-                            components_st1.minute = Calendar.current.component(.minute, from: times[current_sess].start_time)
-                            
-                            components_st2.hour = Calendar.current.component(.hour, from: times[current_sess].end_time)
-                            components_st2.minute = Calendar.current.component(.minute, from: times[current_sess].end_time)
-                            
-                            checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: t))
-                            current_sess += 1
-                            if (current_sess >= modelControllerWork.num_work_sess) {
-                                break
-                            }
-                        }
-                        
-                        if (current_sess >= modelControllerWork.num_work_sess) {
-                            break
-                        }
-                        
-                        if (min_left > t.estimated_time-gt) {
-                            min_left -= t.estimated_time-gt
-                            gt = t.estimated_time
-                            
-                            components_st1.hour = Calendar.current.component(.hour, from: times[current_sess].start_time)
-                            components_st1.minute = Calendar.current.component(.minute, from: times[current_sess].start_time)
-                            
-                            components_st2.hour = Calendar.current.component(.hour, from: times[current_sess].end_time)
-                            components_st2.minute = Calendar.current.component(.minute, from: times[current_sess].end_time)
-                            
-                            checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: t))
-                            current_sess += 1
-                            continue
-                        } else {
-                            min_left = modelControllerWork.time_work_sess
-                            
-                            gt = t.estimated_time
-                            
-                            components_st1.hour = Calendar.current.component(.hour, from: times[current_sess].start_time)
-                            components_st1.minute = Calendar.current.component(.minute, from: times[current_sess].start_time)
-                            
-                            components_st2.hour = Calendar.current.component(.hour, from: times[current_sess].end_time)
-                            components_st2.minute = Calendar.current.component(.minute, from: times[current_sess].end_time)
-                            
-                            checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: t))
-                            current_sess += 1
-                            continue
-                        }
+                    if (CheckController.checks[self.current_day] ?? []).count > 0 {
+                        self.CheckController.checks[self.current_day] = CheckController.checks[self.current_day]!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
                     }
-                    checkListData = checkListData.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
                 }) {
                     ZStack{
                         Text("<").fontWeight(.ultraLight).foregroundColor(.black)
@@ -432,84 +449,9 @@ struct WorkView: View {
                 Text("\(getMonth(current_month, current_day))/\(getDay(current_month, current_day))/\(String(getYear(current_month, current_day)))").font(.largeTitle).fontWeight(.thin)
                 Button(action: {
                     self.current_day += 1;
-                    let dd = DateFormatter()
-                    dd.dateStyle = .medium
-                    dd.timeStyle = .medium
-                    
-                    checkListData = []
-                    
-                    let temp_assign = modelControllerAssignments.assignments.filter{ $0.end_date > date(current_month, current_day) && Calendar.current.component(.day, from: $0.end_date) != getDay(current_month, current_day)}.sorted(by: {$0.end_date.compare($1.end_date) == .orderedAscending})
-                    
-                    var current_sess = 0
-                    var min_left = modelControllerWork.time_work_sess
-                    var components_st1 = DateComponents()
-                    components_st1.year = getYear(current_month, current_day)
-                    components_st1.month = getMonth(current_month, current_day)
-                    components_st1.day = getDay(current_month, current_day)
-                    
-                    var components_st2 = DateComponents()
-                    components_st2.year = getYear(current_month, current_day)
-                    components_st2.month = getMonth(current_month, current_day)
-                    components_st2.day = getDay(current_month, current_day)
-                    
-                    for t in temp_assign {
-                        var gt = 0
-                        
-                        if t.time_worked_on >= t.estimated_time {
-                            continue
-                        }
-                        
-                        while (min_left < t.estimated_time-gt) {
-                            gt += min_left
-                            min_left = modelControllerWork.time_work_sess
-                            
-                            components_st1.hour = Calendar.current.component(.hour, from: times[current_sess].start_time)
-                            components_st1.minute = Calendar.current.component(.minute, from: times[current_sess].start_time)
-                            
-                            components_st2.hour = Calendar.current.component(.hour, from: times[current_sess].end_time)
-                            components_st2.minute = Calendar.current.component(.minute, from: times[current_sess].end_time)
-                            
-                            checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: t))
-                            current_sess += 1
-                            if (current_sess >= modelControllerWork.num_work_sess) {
-                                break
-                            }
-                        }
-                        
-                        if (current_sess >= modelControllerWork.num_work_sess) {
-                            break
-                        }
-                        
-                        if (min_left > t.estimated_time-gt) {
-                            min_left -= t.estimated_time-gt
-                            gt = t.estimated_time
-                            
-                            components_st1.hour = Calendar.current.component(.hour, from: times[current_sess].start_time)
-                            components_st1.minute = Calendar.current.component(.minute, from: times[current_sess].start_time)
-                            
-                            components_st2.hour = Calendar.current.component(.hour, from: times[current_sess].end_time)
-                            components_st2.minute = Calendar.current.component(.minute, from: times[current_sess].end_time)
-                            
-                            checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: t))
-                            current_sess += 1
-                            continue
-                        } else {
-                            min_left = modelControllerWork.time_work_sess
-                            
-                            gt = t.estimated_time
-                            
-                            components_st1.hour = Calendar.current.component(.hour, from: times[current_sess].start_time)
-                            components_st1.minute = Calendar.current.component(.minute, from: times[current_sess].start_time)
-                            
-                            components_st2.hour = Calendar.current.component(.hour, from: times[current_sess].end_time)
-                            components_st2.minute = Calendar.current.component(.minute, from: times[current_sess].end_time)
-                            
-                            checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(from: components_st1)!, end_time: Calendar.current.date(from: components_st2)!), assignm: t))
-                            current_sess += 1
-                            continue
-                        }
+                    if (CheckController.checks[self.current_day] ?? []).count > 0 {
+                        self.CheckController.checks[self.current_day] = CheckController.checks[self.current_day]!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
                     }
-                    checkListData = checkListData.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
                 }) {
                     ZStack{
                         Text(">").fontWeight(.ultraLight).foregroundColor(.black)
@@ -571,6 +513,13 @@ struct WorkView: View {
                                     self.assignment_add_button = true;
                                 }
                                 Button(action: {}, label: {Label("", systemImage: "trash").foregroundColor(Color(.systemGray)).imageScale(.medium)}).onTapGesture {
+                                    for i in CheckController.checks {
+                                        for j in 0..<i.1.count {
+                                            if i.1[j].assignm.id == assign.id {
+                                                CheckController.del(c: i.1[j], d: i.key)
+                                            }
+                                        }
+                                    }
                                     modelControllerAssignments.del(assign: assign);
                                 }
                             }
@@ -578,19 +527,58 @@ struct WorkView: View {
                     }
                 }
                 Section (header: Text("to-do").font(.footnote).fontWeight(.ultraLight).foregroundColor(Color.blue)) {
-                    if checkListData.count == 0 {
+                    if (CheckController.checks[self.current_day] ?? [])!.count == 0 {
                         Text("nothing to do yet 🥱").font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
                     } else {
-                        ForEach(0..<checkListData.count, id: \.self){ item in
+                        ForEach(0..<CheckController.checks[self.current_day]!.count, id: \.self){ item in
                             HStack {
                                 VStack (alignment: .leading, spacing: 1) {
                                     HStack(spacing:0) {
                                         Text("recommended time: ").font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
-                                        Text(checkListData[item].time.start_time, style: .time).font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
+                                        Text(CheckController.checks[self.current_day]![item].time.start_time, style: .time).font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
                                         Text("-").font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
-                                        Text(checkListData[item].time.end_time, style: .time).font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
+                                        Text(CheckController.checks[self.current_day]![item].time.end_time, style: .time).font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
                                     }
-                                    CheckView(chec: item, data: $checkListData, modelAssignmentController: modelControllerAssignments, settings: modelControllerWork)
+                                    HStack {
+                                       Button(action: {
+                                           if let index = modelControllerAssignments.assignments.firstIndex(where: {$0.id == CheckController.checks[current_day]![item].assignm.id}) {
+                                               self.modelControllerAssignments.assignment_name = modelControllerAssignments.assignments[index].assignment_name
+                                               self.modelControllerAssignments.st_date = modelControllerAssignments.assignments[index].start_date
+                                               self.modelControllerAssignments.end_date = modelControllerAssignments.assignments[index].end_date
+                                               self.modelControllerAssignments.estim_time = modelControllerAssignments.assignments[index].estimated_time
+                                               if CheckController.checks[current_day]![item].isChecked {
+                                                   self.modelControllerAssignments.time_worked_on = modelControllerAssignments.assignments[index].time_worked_on-modelControllerWork.time_work_sess
+                                               } else {
+                                                   self.modelControllerAssignments.time_worked_on = modelControllerAssignments.assignments[index].time_worked_on+modelControllerWork.time_work_sess
+                                               }
+                                               
+                                               modelControllerAssignments.AddAssignment();
+                                               for ii in CheckController.checks {
+                                                   for j in 0..<ii.1.count {
+                                                       if ii.1[j].assignm.id == modelControllerAssignments.assignments[index].id {
+                                                           CheckController.checks[ii.0]![j].assignm = modelControllerAssignments.assignments.last!
+                                                       }
+                                                   }
+                                               }
+                                               
+                                               modelControllerAssignments.del(assign: modelControllerAssignments.assignments[index])
+                                               
+                                               CheckController.checks[current_day]![item].assignm = modelControllerAssignments.assignments[index]
+                                               CheckController.checks[current_day]![item].isChecked = !CheckController.checks[current_day]![item].isChecked
+                                               CheckController.AddCheck(c: CheckController.checks[current_day]![item], dd: current_day)
+                                               CheckController.del(c: CheckController.checks[current_day]![item], d: current_day)
+                                               
+                                           }
+                                       }) {
+                                           ZStack {
+                                               Circle().stroke(Color.blue, lineWidth: 0.5).frame(width: 20, height: 20)
+                                               if CheckController.checks[current_day]![item].isChecked {
+                                                   Circle().fill(Color.blue).frame(width: 18, height: 18)
+                                               }
+                                           }
+                                       }
+                                        Text("work on: \(CheckController.checks[current_day]![item].title)").fontWeight(.thin)
+                                    }
                                 }
                                 Spacer()
                             }
@@ -604,6 +592,7 @@ struct WorkView: View {
             modelControllerWork.listenForChange()
             modelControllerPrefTimes.listenForTimes()
             modelControllerUnavailTimes.listenForUn()
+            CheckController.updating(modelControllerWork: modelControllerWork, modelControllerAssignments: modelControllerAssignments, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes)
         }.onDisappear{
             modelControllerEvents.stopListening();
             modelControllerAssignments.stopListening();
@@ -622,6 +611,8 @@ struct SettingsView: View {
     @ObservedObject var modelControllerWorkPreferences: WorkPreferencesController
     @ObservedObject var modelControllerPrefTimes: PrefTimePreferencesController
     @ObservedObject var modelControllerUnavailTimes: UnavailTimePreferencesController
+    @ObservedObject var modelControllerAssignments: AssignmentController
+    @ObservedObject var CheckController: CheckController
     
     var body: some View {
         VStack {
@@ -637,7 +628,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 15) {
                     HStack {
-                        Text("# of work sessions per day:").fontWeight(.thin)//.padding(.leading)
+                        Text("# of work sessions per day:").fontWeight(.thin)
                         Spacer()
                         if !self.pressed {
                             Button (action: {self.pressed=(!self.pressed);}) {
@@ -827,9 +818,9 @@ struct SettingsView: View {
                             Text("update settings").fontWeight(.thin).foregroundColor(.black).overlay(RoundedRectangle(cornerRadius: 20).stroke(.black, lineWidth: 0.5).frame(width:150, height:25))
                         }
                     }
-                }
+                }.padding(.horizontal, UIScreen.main.bounds.width/30)
             }
-        }.padding(.top).onAppear{modelControllerWorkPreferences.listenForChange();modelControllerUnavailTimes.listenForUn();modelControllerPrefTimes.listenForTimes();}.onDisappear{modelControllerWorkPreferences.stopListeningChange();modelControllerUnavailTimes.stopListeningUn();modelControllerPrefTimes.stopListeningTimes()}
+        }.padding(.top).onAppear{modelControllerWorkPreferences.listenForChange();modelControllerUnavailTimes.listenForUn();modelControllerPrefTimes.listenForTimes();CheckController.updating(modelControllerWork: modelControllerWorkPreferences, modelControllerAssignments: modelControllerAssignments,modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes)}.onDisappear{modelControllerWorkPreferences.stopListeningChange();modelControllerUnavailTimes.stopListeningUn();modelControllerPrefTimes.stopListeningTimes()}
     }
     
     private func delayText() async {
@@ -845,7 +836,6 @@ struct helperView: View {
     @Binding var special: Bool
     @Binding var id: String
     var i: Int
-    var check_dates: [Int: [Check]]
     @Binding var event_dates: [Int: [Event]]
     @Binding var assignment_dates: [Int: [Assignment]]
     
@@ -854,6 +844,7 @@ struct helperView: View {
     @ObservedObject var modelControllerWork: WorkPreferencesController
     @ObservedObject var modelControllerPrefTimes: PrefTimePreferencesController
     @ObservedObject var modelControllerUnavailTimes: UnavailTimePreferencesController
+    @ObservedObject var CheckController: CheckController
     
     var body: some View {
         Section(header: Text("\(getMonth(0, i))/\(getDay(0, i))/\(String(getYear(0, i)))").font(.footnote).fontWeight(.ultraLight).foregroundColor(Color.blue)) {
@@ -908,6 +899,13 @@ struct helperView: View {
                         self.button_pressed = true;
                     }
                     Button(action: {}, label: {Label("", systemImage: "trash").foregroundColor(Color(.systemGray)).imageScale(.medium)}).onTapGesture {
+                        for k in CheckController.checks {
+                            for j in 0..<k.1.count {
+                                if k.1[j].assignm.id == assignment_dates[i]![assignm].id {
+                                    CheckController.del(c: k.1[j], d: k.key)
+                                }
+                            }
+                        }
                         modelControllerAssignments.del(assign: assignment_dates[i]![assignm]);
                         event_dates = [0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7:[]]
                         assignment_dates = [0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7:[]]
@@ -923,15 +921,15 @@ struct helperView: View {
                 }
             }
 
-            ForEach (0..<(check_dates[i]?.count ?? 0), id: \.self) { item in
+            ForEach (0..<(CheckController.checks[i]?.count ?? 0), id: \.self) { item in
                 VStack (alignment: .leading, spacing: 1) {
                     HStack(spacing:0) {
                         Text("recommended time: ").font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
-                        Text(check_dates[i]![item].time.start_time, style: .time).font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
+                        Text(CheckController.checks[i]![item].time.start_time, style: .time).font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
                         Text("-").font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
-                        Text(check_dates[i]![item].time.end_time, style: .time).font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
+                        Text(CheckController.checks[i]![item].time.end_time, style: .time).font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
                     }
-                    Text("work on: \(check_dates[i]![item].title)").fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
+                    Text("work on: \(CheckController.checks[i]![item].title)").fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));
                 }
             }
         }
@@ -949,11 +947,11 @@ struct ScheduleView: View {
     @ObservedObject var modelControllerWork: WorkPreferencesController
     @ObservedObject var modelControllerPrefTimes: PrefTimePreferencesController
     @ObservedObject var modelControllerUnavailTimes: UnavailTimePreferencesController
+    @ObservedObject var CheckController: CheckController
 
     @State var event_dates: [Int: [Event]] = [0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7:[]]
     @State var assignment_dates: [Int: [Assignment]] = [0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7:[]]
-    @State var check_dates: [Int: [Check]] = [0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7:[]]
-    
+
     var body: some View {
         VStack {
             Text("the daily schedule").font(.largeTitle).fontWeight(.thin)
@@ -962,8 +960,8 @@ struct ScheduleView: View {
             
             List {
                 ForEach(0...7, id: \.self) { i in
-                    if (!(event_dates[i]?.isEmpty ?? true) || !(assignment_dates[i]?.isEmpty ?? true) || !(check_dates[i]?.isEmpty ?? true)) {
-                        helperView(event_add_button: $event_add_button, assignment_add_button: $assignment_add_button, button_pressed: $button_pressed, special: $special, id: $id, i: i, check_dates: check_dates, event_dates: $event_dates, assignment_dates: $assignment_dates, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWork, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes)
+                    if (!(event_dates[i]?.isEmpty ?? true) || !(assignment_dates[i]?.isEmpty ?? true) || !(CheckController.checks[i]?.isEmpty ?? true)) {
+                        helperView(event_add_button: $event_add_button, assignment_add_button: $assignment_add_button, button_pressed: $button_pressed, special: $special, id: $id, i: i, event_dates: $event_dates, assignment_dates: $assignment_dates, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWork, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, CheckController: CheckController)
                     } else {
                         Section(header: Text("\(getMonth(0, i))/\(getDay(0, i))/\(String(getYear(0, i)))").font(.footnote).fontWeight(.ultraLight).foregroundColor(Color.blue)) { Text("nothing for today").font(.footnote).fontWeight(.thin).foregroundColor(Color(hue: 1.0, saturation: 0.0, brightness: 0.44));}
                     }
@@ -976,7 +974,6 @@ struct ScheduleView: View {
             modelControllerPrefTimes.listenForTimes();
             modelControllerUnavailTimes.listenForUn();
             let c = Calendar.current
-            check_dates = [0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7:[]]
             let temp_eve = modelControllerEvents.events.sorted(by: {$0.date.compare($1.date) == .orderedAscending}).filter { c.isDateInToday($0.date) || ($0.date >= date(0, 0) && $0.date <= date(0, 7)) }
             
             for event in temp_eve {
@@ -995,240 +992,8 @@ struct ScheduleView: View {
                 self.assignment_dates[numberOfDays.day!]?.append(assignm)
             }
             
-            var times: [timerange] = []
-            var components_st = DateComponents()
-            var components_end = DateComponents()
-            components_st.year = getYear(0, 0)
-            components_st.month = getMonth(0, 0)
-            components_st.day = getDay(0, 0)
-            if (modelControllerWork.sleep_yes) {
-                components_st.hour = c.component(.hour, from: modelControllerWork.sleeping_hours.end_time)
-                components_st.minute = c.component(.minute, from: modelControllerWork.sleeping_hours.end_time)
-                
-                components_end.hour = c.component(.hour, from: modelControllerWork.sleeping_hours.start_time)
-                components_end.minute = c.component(.minute, from: modelControllerWork.sleeping_hours.start_time)
-            } else {
-                components_st.hour = 8
-                components_st.minute = 0
-                
-                components_end.hour = 20
-                components_end.minute = 0
-            }
+            CheckController.updating(modelControllerWork: modelControllerWork, modelControllerAssignments: modelControllerAssignments, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes)
             
-            if (modelControllerUnavailTimes.unavailable.isEmpty && modelControllerPrefTimes.pref_work_times.isEmpty) {
-                while true {
-                    var temp = timerange(start_time: c.date(from: components_st)!, end_time: c.date(from: components_st)!)
-                    
-                    components_st.hour = components_st.hour!+modelControllerWork.hours
-                    components_st.minute = components_st.minute!+modelControllerWork.minutes
-                    temp.end_time = c.date(from: components_st)!
-                    if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
-                        break
-                    }
-                    times.append(temp)
-                }
-            } else if (!modelControllerUnavailTimes.unavailable.isEmpty && modelControllerPrefTimes.pref_work_times.isEmpty) {
-                while true {
-                    var temp = timerange(start_time: c.date(from: components_st)!, end_time: c.date(from: components_st)!)
-                    components_st.hour = components_st.hour!+modelControllerWork.hours
-                    components_st.minute = components_st.minute!+modelControllerWork.minutes
-                    
-                    temp.end_time = c.date(from: components_st)!
-                    if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
-                        break
-                    }
-                    var broke = false
-                    for uwu in modelControllerUnavailTimes.unavailable {
-                        if c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) > c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) <= c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
-                            broke = true
-                            break
-                        }
-                        
-                        if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) >= c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) < c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
-                            broke = true
-                            break
-                        }
-                        
-                        if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) <= c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) >= c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
-                            broke = true
-                            break
-                        }
-                    }
-                    if broke == false {
-                        times.append(temp)
-                    }
-                }
-            } else if (!modelControllerPrefTimes.pref_work_times.isEmpty && modelControllerUnavailTimes.unavailable.isEmpty) {
-                while true {
-                    var temp = timerange(start_time: c.date(from: components_st)!, end_time: c.date(from: components_st)!)
-                    
-                    components_st.hour = components_st.hour!+modelControllerWork.hours
-                    components_st.minute = components_st.minute!+modelControllerWork.minutes
-                    
-                    temp.end_time = c.date(from: components_st)!
-                    if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
-                        break
-                    }
-                    
-                    var broke = false
-                    for peep in modelControllerPrefTimes.pref_work_times {
-                        if c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) > c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) <= c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
-                            times.insert(temp, at: 0)
-                            broke = true
-                            break
-                        }
-                        
-                        if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) >= c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) < c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
-                            times.insert(temp, at: 0)
-                            broke = true
-                            break
-                        }
-                        
-                        if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) <= c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) >= c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
-                            times.insert(temp, at: 0)
-                            broke = true
-                            break
-                        }
-                    }
-                    if (broke == false) {
-                        times.append(temp)
-                    }
-                }
-            } else {
-                while true {
-                    var temp = timerange(start_time: c.date(from: components_st)!, end_time: c.date(from: components_st)!)
-                    
-                    components_st.hour = components_st.hour!+modelControllerWork.hours
-                    components_st.minute = components_st.minute!+modelControllerWork.minutes
-                    
-                    temp.end_time = c.date(from: components_st)!
-                    if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
-                        break
-                    }
-                    var broke = false
-                    for peep in modelControllerPrefTimes.pref_work_times {
-                        if c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) > c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) <= c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
-                            times.insert(temp, at: 0)
-                            broke = true
-                            break
-                        }
-                        
-                        if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) >= c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) < c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
-                            times.insert(temp, at: 0)
-                            broke = true
-                            break
-                        }
-                        
-                        if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) <= c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) >= c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
-                            times.insert(temp, at: 0)
-                            broke = true
-                            break
-                        }
-                    }
-                    
-                    var brokeii = false
-                    for uwu in modelControllerUnavailTimes.unavailable {
-                        if c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) > c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) <= c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
-                            brokeii = true
-                            break
-                        }
-                        
-                        if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) >= c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) < c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
-                            brokeii = true
-                            break
-                        }
-                        
-                        if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) <= c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) >= c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
-                            brokeii = true
-                            break
-                        }
-                    }
-                    if broke == false && brokeii == false {
-                        times.append(temp)
-                    }
-                }
-            }
-            
-            let dd = DateFormatter()
-            dd.dateStyle = .medium
-            dd.timeStyle = .medium
-            
-            var completed: [Assignment] = []
-            var days = 0
-            while days < 8 {
-                var temp_assign: [Assignment] = []
-                for j in modelControllerAssignments.assignments {
-                    if j.end_date > date(0, days) && !completed.contains(where: {$0 == j}) {
-                        temp_assign.append(j)
-                    }
-                }
-                if temp_assign.count == 0 {
-                    break
-                }
-                temp_assign = temp_assign.sorted(by: {$0.end_date.compare($1.end_date) == .orderedAscending})
-                var min_left = modelControllerWork.time_work_sess
-                
-                for t in temp_assign {
-                    var gt = 0
-                    
-                    if t.time_worked_on >= t.estimated_time {
-                        continue
-                    }
-                    
-                    while (min_left < t.estimated_time-gt) {
-                        gt += min_left
-                        min_left = modelControllerWork.time_work_sess
-                        
-                        var dateComponent = DateComponents()
-                        dateComponent.day = days
-                        
-                        check_dates[days]!.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(byAdding: dateComponent, to: times[(check_dates[days] ?? []).count].start_time)!, end_time: Calendar.current.date(byAdding: dateComponent, to: times[(check_dates[days] ?? []).count].end_time)!), assignm: t))
-                        
-                        completed.append(t)
-                        if ((check_dates[days] ?? []).count >= modelControllerWork.num_work_sess) {
-                            check_dates[days] = check_dates[days]!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
-                            days += 1
-                        }
-                    }
-                    
-                    if ((check_dates[days] ?? []).count >= modelControllerWork.num_work_sess) {
-                        check_dates[days] = check_dates[days]!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
-                        days += 1
-                    }
-                    if days >= 8 {
-                        break
-                    }
-                    
-                    if (min_left > t.estimated_time-gt) {
-                        min_left -= t.estimated_time-gt
-                        gt = t.estimated_time
-                        
-                        var dateComponent = DateComponents()
-                        dateComponent.day = days
-                        
-                        check_dates[days]!.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(byAdding: dateComponent, to: times[(check_dates[days] ?? []).count].start_time)!, end_time: Calendar.current.date(byAdding: dateComponent, to: times[(check_dates[days] ?? []).count].end_time)!), assignm: t))
-                        
-                        completed.append(t)
-                        continue
-                    } else {
-                        min_left = modelControllerWork.time_work_sess
-                        
-                        gt = t.estimated_time
-                        
-                        var dateComponent = DateComponents()
-                        dateComponent.day = days
-                        
-                        check_dates[days]!.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(byAdding: dateComponent, to: times[(check_dates[days] ?? []).count].start_time)!, end_time: Calendar.current.date(byAdding: dateComponent, to: times[(check_dates[days] ?? []).count].end_time)!), assignm: t))
-                        
-                        completed.append(t)
-                        check_dates[days] = check_dates[days]!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
-                        continue
-                    }
-                }
-                if days >= 8 {
-                    break
-                }
-            }
         }.onDisappear {
             modelControllerEvents.stopListening();
             modelControllerAssignments.stopListening();
@@ -1256,8 +1021,6 @@ struct CalendarView: View {
     @ObservedObject var modelControllerPrefTimes: PrefTimePreferencesController
     @ObservedObject var modelControllerUnavailTimes: UnavailTimePreferencesController
     
-    @Binding var times: [timerange]
-    @Binding var checkListData: [Check]
     var columns: [GridItem] = [.init(.adaptive(minimum: UIScreen.main.bounds.width/8.46, maximum: UIScreen.main.bounds.width/8.46))]
     
     var body: some View {
@@ -1272,26 +1035,99 @@ struct CalendarView: View {
                 NetworkImage(url: user?.profile?.imageURL(withDimension: 100)).padding(.trailing, (UIScreen.main.bounds.width-300)/3).frame(width: 55, height: 55, alignment: .center).cornerRadius(100)
             }
             HStack {
-                Button(action: {self.current_month -= 12;}) {
+                Button(action: {
+                    var comps = DateComponents()
+                    comps.second = 0
+                    comps.minute = 0
+                    comps.hour = 0
+                    comps.day = getDay(current_month, current_day)
+                    comps.month = getMonth(current_month, current_day)
+                    comps.year = getYear(current_month, current_day)-1
+                    
+                    var today = DateComponents()
+                    today.second = 0
+                    today.minute = 0
+                    today.hour = 0
+                    today.day = getDay(0,0)
+                    today.month = getMonth(0, 0)
+                    today.year = getYear(0, 0)
+                    self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                    self.current_month = 0
+                }) {
                     ZStack{
                         Text("<<").fontWeight(.ultraLight).foregroundColor(.black)
                     }
                 }
                 Text("\(String(getYear(current_month, current_day)))").font(.largeTitle).fontWeight(.thin)
-                Button(action: {self.current_month += 12;}) {
+                Button(action: {
+                    var comps = DateComponents()
+                    comps.second = 0
+                    comps.minute = 0
+                    comps.hour = 0
+                    comps.day = getDay(current_month, current_day)
+                    comps.month = getMonth(current_month, current_day)
+                    comps.year = getYear(current_month, current_day)+1
+                    
+                    var today = DateComponents()
+                    today.second = 0
+                    today.minute = 0
+                    today.hour = 0
+                    today.day = getDay(0,0)
+                    today.month = getMonth(0, 0)
+                    today.year = getYear(0, 0)
+                    self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                    self.current_month = 0
+                }) {
                     ZStack{
                         Text(">>").fontWeight(.ultraLight).foregroundColor(.black)
                     }
                 }
             }
+            
             HStack {
-                Button(action: {self.current_month -= 1;}) {
+                Button(action: {
+                    var comps = DateComponents()
+                    comps.second = 0
+                    comps.minute = 0
+                    comps.hour = 0
+                    comps.day = getDay(current_month, current_day)
+                    comps.month = getMonth(current_month, current_day)-1
+                    comps.year = getYear(current_month, current_day)
+                    
+                    var today = DateComponents()
+                    today.second = 0
+                    today.minute = 0
+                    today.hour = 0
+                    today.day = getDay(0,0)
+                    today.month = getMonth(0, 0)
+                    today.year = getYear(0, 0)
+                    self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                    self.current_month = 0
+                }) {
                     ZStack{
                         Text("<").fontWeight(.ultraLight).foregroundColor(.black)
                     }
                 }
                 Text("\(month_names[mod(getMonth(current_month, current_day)-1, 12)])").font(.title).fontWeight(.ultraLight)
-                Button(action: {self.current_month += 1;}) {
+                Button(action: {
+                    var comps = DateComponents()
+                    comps.second = 0
+                    comps.minute = 0
+                    comps.hour = 0
+                    comps.day = getDay(current_month, current_day)
+                    comps.month = getMonth(current_month, current_day)+1
+                    comps.year = getYear(current_month, current_day)
+                    
+                    var today = DateComponents()
+                    today.second = 0
+                    today.minute = 0
+                    today.hour = 0
+                    today.day = getDay(0,0)
+                    today.month = getMonth(0, 0)
+                    today.year = getYear(0, 0)
+                    self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                    self.current_month = 0
+                }) {
                     ZStack{
                         Text(">").fontWeight(.ultraLight).foregroundColor(.black)
                     }
@@ -1312,225 +1148,24 @@ struct CalendarView: View {
                         }.buttonStyle(PlainButtonStyle())
                     } else {
                         Button(action: {
-                            times = []
                             self.button_pressed=true;
-                            self.current_day = (i-6-getStartMonthPos(current_month, current_day))-getDay(current_month, 0);
-                            self.current_month = current_month
+                            var comps = DateComponents()
+                            comps.second = 0
+                            comps.minute = 0
+                            comps.hour = 0
+                            comps.day = i-6-getStartMonthPos(current_month, current_day)
+                            comps.month = getMonth(current_month, current_day)
+                            comps.year = getYear(current_month, current_day)
                             
-                            var components_st = DateComponents()
-                            var components_end = DateComponents()
-                            components_st.year = getYear(0, 0)
-                            components_st.month = getMonth(0, 0)
-                            components_st.day = getDay(0, 0)
-                            if (modelControllerWork.sleep_yes) {
-                                components_end.hour = Calendar.current.component(.hour, from: modelControllerWork.sleeping_hours.start_time)
-                                components_end.minute = Calendar.current.component(.minute, from: modelControllerWork.sleeping_hours.start_time)
-                                components_st.hour = Calendar.current.component(.hour, from: modelControllerWork.sleeping_hours.end_time)
-                                components_st.minute = Calendar.current.component(.minute, from: modelControllerWork.sleeping_hours.end_time)
-                            } else {
-                                components_st.hour = 8
-                                components_st.minute = 0
-                                
-                                components_end.hour = 20
-                                components_end.minute = 0
-                            }
-                            
-                            if (modelControllerUnavailTimes.unavailable.isEmpty && modelControllerPrefTimes.pref_work_times.isEmpty) {
-                                while true {
-                                    var temp = timerange(start_time: Calendar.current.date(from: components_st)!, end_time: Calendar.current.date(from: components_st)!)
-                                    
-                                    components_st.hour = components_st.hour!+modelControllerWork.hours
-                                    components_st.minute = components_st.minute!+modelControllerWork.minutes
-                                    temp.end_time = Calendar.current.date(from: components_st)!
-                                    if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
-                                        break
-                                    }
-                                    times.append(temp)
-                                }
-                            } else if (!modelControllerUnavailTimes.unavailable.isEmpty && modelControllerPrefTimes.pref_work_times.isEmpty) {
-                                while true {
-                                    var temp = timerange(start_time: Calendar.current.date(from: components_st)!, end_time: Calendar.current.date(from: components_st)!)
-                                    components_st.hour = components_st.hour!+modelControllerWork.hours
-                                    components_st.minute = components_st.minute!+modelControllerWork.minutes
-                                    
-                                    temp.end_time = Calendar.current.date(from: components_st)!
-                                    if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
-                                        break
-                                    }
-                                    var broke = false
-                                    for uwu in modelControllerUnavailTimes.unavailable {
-                                        if Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) > Calendar.current.component(.hour, from: uwu.start_time)*60+Calendar.current.component(.minute, from: uwu.start_time) && Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) <= Calendar.current.component(.hour, from: uwu.end_time)*60+Calendar.current.component(.minute, from: uwu.end_time) {
-                                            broke = true
-                                            break
-                                        }
-                                        
-                                        if Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) >= Calendar.current.component(.hour, from: uwu.start_time)*60+Calendar.current.component(.minute, from: uwu.start_time) && Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) < Calendar.current.component(.hour, from: uwu.end_time)*60+Calendar.current.component(.minute, from: uwu.end_time) {
-                                            broke = true
-                                            break
-                                        }
-                                        
-                                        if Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) <= Calendar.current.component(.hour, from: uwu.start_time)*60+Calendar.current.component(.minute, from: uwu.start_time) && Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) >= Calendar.current.component(.hour, from: uwu.end_time)*60+Calendar.current.component(.minute, from: uwu.end_time) {
-                                            broke = true
-                                            break
-                                        }
-                                    }
-                                    if broke == false {
-                                        times.append(temp)
-                                    }
-                                }
-                            } else if (!modelControllerPrefTimes.pref_work_times.isEmpty && modelControllerUnavailTimes.unavailable.isEmpty) {
-                                while true {
-                                    var temp = timerange(start_time: Calendar.current.date(from: components_st)!, end_time: Calendar.current.date(from: components_st)!)
-                                    
-                                    components_st.hour = components_st.hour!+modelControllerWork.hours
-                                    components_st.minute = components_st.minute!+modelControllerWork.minutes
-                                    
-                                    temp.end_time = Calendar.current.date(from: components_st)!
-                                    if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
-                                        break
-                                    }
-                                    
-                                    var broke = false
-                                    for peep in modelControllerPrefTimes.pref_work_times {
-                                        if Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) > Calendar.current.component(.hour, from: peep.start_time)*60+Calendar.current.component(.minute, from: peep.start_time) && Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) <= Calendar.current.component(.hour, from: peep.end_time)*60+Calendar.current.component(.minute, from: peep.end_time) {
-                                            times.insert(temp, at: 0)
-                                            broke = true
-                                            break
-                                        }
-                                        
-                                        if Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) >= Calendar.current.component(.hour, from: peep.start_time)*60+Calendar.current.component(.minute, from: peep.start_time) && Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) < Calendar.current.component(.hour, from: peep.end_time)*60+Calendar.current.component(.minute, from: peep.end_time) {
-                                            times.insert(temp, at: 0)
-                                            broke = true
-                                            break
-                                        }
-                                        
-                                        if Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) <= Calendar.current.component(.hour, from: peep.start_time)*60+Calendar.current.component(.minute, from: peep.start_time) && Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) >= Calendar.current.component(.hour, from: peep.end_time)*60+Calendar.current.component(.minute, from: peep.end_time) {
-                                            times.insert(temp, at: 0)
-                                            broke = true
-                                            break
-                                        }
-                                    }
-                                    if (broke == false) {
-                                        times.append(temp)
-                                    }
-                                }
-                            } else {
-                                while true {
-                                    var temp = timerange(start_time: Calendar.current.date(from: components_st)!, end_time: Calendar.current.date(from: components_st)!)
-                                    
-                                    components_st.hour = components_st.hour!+modelControllerWork.hours
-                                    components_st.minute = components_st.minute!+modelControllerWork.minutes
-                                    temp.end_time = Calendar.current.date(from: components_st)!
-                                    
-                                    if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
-                                        break
-                                    }
-                                    
-                                    var broke = false
-                                    for peep in modelControllerPrefTimes.pref_work_times {
-                                        if Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) > Calendar.current.component(.hour, from: peep.start_time)*60+Calendar.current.component(.minute, from: peep.start_time) && Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) <= Calendar.current.component(.hour, from: peep.end_time)*60+Calendar.current.component(.minute, from: peep.end_time) {
-                                            times.insert(temp, at: 0)
-                                            broke = true
-                                            break
-                                        }
-                                        
-                                        if Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) >= Calendar.current.component(.hour, from: peep.start_time)*60+Calendar.current.component(.minute, from: peep.start_time) && Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) < Calendar.current.component(.hour, from: peep.end_time)*60+Calendar.current.component(.minute, from: peep.end_time) {
-                                            times.insert(temp, at: 0)
-                                            broke = true
-                                            break
-                                        }
-                                        
-                                        if Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) <= Calendar.current.component(.hour, from: peep.start_time)*60+Calendar.current.component(.minute, from: peep.start_time) && Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) >= Calendar.current.component(.hour, from: peep.end_time)*60+Calendar.current.component(.minute, from: peep.end_time) {
-                                            times.insert(temp, at: 0)
-                                            broke = true
-                                            break
-                                        }
-                                    }
-                                    
-                                    var brokeii = false
-                                    for uwu in modelControllerUnavailTimes.unavailable {
-                                        if Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) > Calendar.current.component(.hour, from: uwu.start_time)*60+Calendar.current.component(.minute, from: uwu.start_time) && Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) <= Calendar.current.component(.hour, from: uwu.end_time)*60+Calendar.current.component(.minute, from: uwu.end_time) {
-                                            brokeii = true
-                                            break
-                                        }
-                                        
-                                        if Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) >= Calendar.current.component(.hour, from: uwu.start_time)*60+Calendar.current.component(.minute, from: uwu.start_time) && Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) < Calendar.current.component(.hour, from: uwu.end_time)*60+Calendar.current.component(.minute, from: uwu.end_time) {
-                                            brokeii = true
-                                            break
-                                        }
-                                        
-                                        if Calendar.current.component(.hour, from: temp.start_time)*60+Calendar.current.component(.minute, from: temp.start_time) <= Calendar.current.component(.hour, from: uwu.start_time)*60+Calendar.current.component(.minute, from: uwu.start_time) && Calendar.current.component(.hour, from: temp.end_time)*60+Calendar.current.component(.minute, from: temp.end_time) >= Calendar.current.component(.hour, from: uwu.end_time)*60+Calendar.current.component(.minute, from: uwu.end_time) {
-                                            brokeii = true
-                                            break
-                                        }
-                                    }
-                                    if broke == false && brokeii == false {
-                                        times.append(temp)
-                                    }
-                                }
-                            }
-                            let dd = DateFormatter()
-                            dd.dateStyle = .medium
-                            dd.timeStyle = .medium
-                            
-                            checkListData = []
-                            
-                            let temp_assign = modelControllerAssignments.assignments.filter{ $0.end_date >= date(current_month, current_day) }.sorted(by: {$0.end_date.compare($1.end_date) == .orderedAscending})
-                            
-                            var current_sess = 0
-                            var min_left = modelControllerWork.time_work_sess
-                            
-                            for t in temp_assign {
-                                var gt = 0
-                                
-                                if t.time_worked_on >= t.estimated_time {
-                                    continue
-                                }
-                                
-                                while (min_left < t.estimated_time-gt) {
-                                    gt += min_left
-                                    min_left = modelControllerWork.time_work_sess
-                                    
-                                    var dateComponent = DateComponents()
-                                    dateComponent.day = current_day
-                                    
-                                    checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(byAdding: dateComponent, to: times[current_sess].start_time)!, end_time: Calendar.current.date(byAdding: dateComponent, to: times[current_sess].end_time)!), assignm: t))
-                                    current_sess += 1
-                                    if (current_sess >= modelControllerWork.num_work_sess) {
-                                        break
-                                    }
-                                }
-                                
-                                if (current_sess >= modelControllerWork.num_work_sess) {
-                                    break
-                                }
-                                
-                                if (min_left > t.estimated_time-gt) {
-                                    min_left -= t.estimated_time-gt
-                                    gt = t.estimated_time
-                                    
-                                    var dateComponent = DateComponents()
-                                    dateComponent.day = current_day
-                                    
-                                    checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(byAdding: dateComponent, to: times[current_sess].start_time)!, end_time: Calendar.current.date(byAdding: dateComponent, to: times[current_sess].end_time)!), assignm: t))
-                                    
-                                    current_sess += 1
-                                    continue
-                                } else {
-                                    min_left = modelControllerWork.time_work_sess
-                                    
-                                    gt = t.estimated_time
-                                    
-                                    var dateComponent = DateComponents()
-                                    dateComponent.day = current_day
-                                    
-                                    checkListData.append(Check(title:t.assignment_name, isChecked: false, time: timerange(start_time: Calendar.current.date(byAdding: dateComponent, to: times[current_sess].start_time)!, end_time: Calendar.current.date(byAdding: dateComponent, to: times[current_sess].end_time)!), assignm: t))
-                                    
-                                    current_sess += 1
-                                    continue
-                                }
-                            }
-                            checkListData = checkListData.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
+                            var today = DateComponents()
+                            today.second = 0
+                            today.minute = 0
+                            today.hour = 0
+                            today.day = getDay(0,0)
+                            today.month = getMonth(0, 0)
+                            today.year = getYear(0, 0)
+                            self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                            self.current_month = 0
                         }) {
                             ZStack{
                                 if i-6-getStartMonthPos(current_month, current_day) == getDay(0, 0) && getMonth(current_month, current_day) == getMonth(0, 0) && getYear(current_month, current_day) == getYear(0, 0) {
@@ -1572,8 +1207,7 @@ struct ContentView: View {
     @State var edit_assignment = false
     @State var special = false
     @State var id = ""
-    @State var times: [timerange] = []
-    @State var checkListData: [Check] = []
+    @State var intro_ended = false
     @State private var showingAlert = false
     @EnvironmentObject var viewModel: AuthenticationViewModel
     @ObservedObject var modelControllerEvents = EventsController()
@@ -1581,39 +1215,43 @@ struct ContentView: View {
     @ObservedObject var modelControllerWorkPreferences = WorkPreferencesController()
     @ObservedObject var modelControllerPrefTimes = PrefTimePreferencesController()
     @ObservedObject var modelControllerUnavailTimes = UnavailTimePreferencesController()
-    @ObservedObject var modelScheduleController = ScheduleController()
+    @ObservedObject var modelCheckController = CheckController()
     
     var body: some View {
-        switch viewModel.state {
-        case .signedIn:
-            if (button_pressed) {
-                if (event_add_button && !special) {
-                    AddEvent(current_month: $current_month, current_day: $current_day, special: $special, event_add_button: $event_add_button, modelControllerEvents: modelControllerEvents)
-                } else if (assignment_add_button && !special) {
-                    AddAssignment(current_month: $current_month, current_day: $current_day, special: $special, assignment_add_button: $assignment_add_button, modelControllerAssignments: modelControllerAssignments)
-                } else if (event_add_button && special) {
-                    AddEvent(id: id, current_month: $current_month, current_day: $current_day, special: $special, event_add_button: $event_add_button, modelControllerEvents: modelControllerEvents)
-                } else if (assignment_add_button && special) {
-                    AddAssignment(id: id, current_month: $current_month, current_day: $current_day, special: $special, assignment_add_button: $assignment_add_button, modelControllerAssignments: modelControllerAssignments)
+        if (intro_ended) {
+            switch viewModel.state {
+            case .signedIn:
+                if (button_pressed) {
+                    if (event_add_button && !special) {
+                        AddEvent(current_month: $current_month, current_day: $current_day, special: $special, event_add_button: $event_add_button, modelControllerEvents: modelControllerEvents)
+                    } else if (assignment_add_button && !special) {
+                        AddAssignment(current_month: $current_month, current_day: $current_day, special: $special, assignment_add_button: $assignment_add_button, modelControllerAssignments: modelControllerAssignments)
+                    } else if (event_add_button && special) {
+                        AddEvent(id: id, current_month: $current_month, current_day: $current_day, special: $special, event_add_button: $event_add_button, modelControllerEvents: modelControllerEvents)
+                    } else if (assignment_add_button && special) {
+                        AddAssignment(id: id, current_month: $current_month, current_day: $current_day, special: $special, assignment_add_button: $assignment_add_button, modelControllerAssignments: modelControllerAssignments)
+                    } else {
+                        WorkView(current_month: $current_month, current_day: $current_day, button_pressed: $button_pressed, event_add_button: $event_add_button, assignment_add_button: $assignment_add_button, special: $special, id: $id, viewModel: _viewModel, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, CheckController: modelCheckController)
+                    }
                 } else {
-                    WorkView(current_month: $current_month, current_day: $current_day, button_pressed: $button_pressed, event_add_button: $event_add_button, assignment_add_button: $assignment_add_button, special: $special, id: $id, viewModel: _viewModel, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, checkListData: $checkListData, times: times)
-                }
-            } else {
-                TabView {
-                    CalendarView(current_month: $current_month, current_day: $current_day, button_pressed: $button_pressed, viewModel: _viewModel, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, times: $times, checkListData: $checkListData).tabItem {
-                        Label("calendar", systemImage: "calendar")
-                    }
-                    
-                    ScheduleView(event_add_button: $event_add_button, assignment_add_button: $assignment_add_button, button_pressed: $button_pressed, special: $special, id: $id, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes).tabItem {
-                        Label("to-do", systemImage: "list.bullet")
-                    }
-                    
-                    SettingsView(modelControllerWorkPreferences: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes).tabItem {
-                        Label("settings", systemImage: "gearshape")
+                    TabView {
+                        CalendarView(current_month: $current_month, current_day: $current_day, button_pressed: $button_pressed, viewModel: _viewModel, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes).tabItem {
+                            Label("calendar", systemImage: "calendar")
+                        }
+                        
+                        ScheduleView(event_add_button: $event_add_button, assignment_add_button: $assignment_add_button, button_pressed: $button_pressed, special: $special, id: $id, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, CheckController: modelCheckController).tabItem {
+                            Label("to-do", systemImage: "list.bullet")
+                        }
+                        
+                        SettingsView(modelControllerWorkPreferences: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, modelControllerAssignments: modelControllerAssignments, CheckController: modelCheckController).tabItem {
+                            Label("settings", systemImage: "gearshape")
+                        }
                     }
                 }
+            case .signedOut: SignInPage(viewModel: _viewModel)
             }
-        case .signedOut: StartView()
+        } else {
+            IntroFlash(intro_ended: $intro_ended)
         }
     }
 }

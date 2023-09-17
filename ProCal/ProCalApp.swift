@@ -79,7 +79,7 @@ class AuthenticationViewModel: ObservableObject {
     }
 }
 
-struct timerange: Identifiable, Codable {
+struct timerange: Identifiable, Codable, Equatable {
     var id: String?
     var start_time: Date
     var end_time: Date
@@ -306,45 +306,330 @@ struct Check: Identifiable, Codable {
     var assignm: Assignment
 }
 
-struct CheckView: View {
-    @State var chec: Int
-    @Binding var data: [Check]
-    @ObservedObject var modelAssignmentController: AssignmentController
-    @ObservedObject var settings: WorkPreferencesController
-    var body: some View {
-        HStack {
-           Button(action: {
-               var d: [Check] = []
-               for i in 0..<data.count {
-                   if i == chec {
-                       d.append(Check(title: data[i].title, isChecked: !data[i].isChecked, time: data[i].time, assignm: data[i].assignm))
-                   } else {
-                       d.append(Check(title: data[i].title, isChecked: data[i].isChecked, time: data[i].time, assignm: data[i].assignm))
-                   }
-               }
-               data = d
-           }) {
-               ZStack {
-                   Circle().stroke(Color.blue, lineWidth: 0.5).frame(width: 20, height: 20)
-                   if chec < data.count {
-                       if data[chec].isChecked {
-                           Circle().fill(Color.blue).frame(width: 18, height: 18)
-                       }
-                   }
-               }
-           }
-           if chec < data.count {
-               Text("work on: \(data[chec].title)").fontWeight(.thin)
-           }
-        }
-    }
-}
-
-final class ScheduleController: ObservableObject {
+final class CheckController: ObservableObject {
+    @Published var checks: [Int:[Check]] = [:]
     @Published var times: [timerange] = []
     
-    func innit(settings: WorkPreferencesController, un: UnavailTimePreferencesController, pre: PrefTimePreferencesController) {
+    private lazy var databasePath: DatabaseReference? = {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return nil
+        }
+        let ref = Database.database().reference().child("users/\(uid)/checks")
+        return ref
+    }()
+    
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+    
+    func listenForChecks() {
+        guard let databasePath = databasePath else {
+            return
+        }
+        databasePath.observe(.childAdded) {
+            [weak self] snapshot in guard let self = self, var json = snapshot.value as? [String: Any]
+            else {
+                return
+            }
+            json["id"] = snapshot.key
+            do {
+                let checkData = try JSONSerialization.data(withJSONObject: json)
+                let check = try self.decoder.decode(Check.self, from: checkData)
+                let dd = Calendar.current.dateComponents([.day], from: Date(), to: check.time.start_time).day!
+                if (self.checks[dd] ?? []).count > 0 {
+                    if !(self.checks[dd]!.contains(where: {$0.id == check.id})) {
+                        self.checks[dd]!.append(check)
+                    }
+                }
+            } catch {
+                print("an error occurred", error)
+            }
+        }
+    }
+    
+    func stopListening() {
+        databasePath?.removeAllObservers()
+    }
+    
+    func AddCheck(c: Check, dd: Int) {
+        guard let databasePath = databasePath else {
+            return
+        }
         
+        do {
+            var cc = c
+            let data = try encoder.encode(cc)
+            let json = try JSONSerialization.jsonObject(with: data)
+            
+            let reference = databasePath.childByAutoId()
+
+            reference.setValue(json)
+            cc.id = reference.key
+            
+            if (self.checks[dd] ?? []).count > 0 {
+                if !(self.checks[dd]!.contains(where: {$0.id == cc.id})) {
+                    self.checks[dd]!.append(cc)
+                }
+            } else {
+                self.checks[dd] = [cc]
+            }
+        } catch {
+            print("an error occurred", error)
+        }
+    }
+    
+    func del(c: Check, d: Int) {
+        guard let databasePath = databasePath else {
+            return
+        }
+        
+        self.checks[d]!.removeAll(where: {$0.id == c.id})
+        databasePath.child(c.id!).removeValue()
+    }
+    
+    func update(modelControllerWork: WorkPreferencesController, modelControllerPrefTimes: PrefTimePreferencesController, modelControllerUnavailTimes: UnavailTimePreferencesController) {
+        self.times = []
+        var components_st = DateComponents()
+        var components_end = DateComponents()
+        components_st.year = getYear(0, 0)
+        components_st.month = getMonth(0, 0)
+        components_st.day = getDay(0, 0)
+        let c = Calendar.current
+        if (modelControllerWork.sleep_yes) {
+            components_st.hour = c.component(.hour, from: modelControllerWork.sleeping_hours.end_time)
+            components_st.minute = c.component(.minute, from: modelControllerWork.sleeping_hours.end_time)
+            
+            components_end.hour = c.component(.hour, from: modelControllerWork.sleeping_hours.start_time)
+            components_end.minute = c.component(.minute, from: modelControllerWork.sleeping_hours.start_time)
+        } else {
+            components_st.hour = 8
+            components_st.minute = 0
+            
+            components_end.hour = 20
+            components_end.minute = 0
+        }
+        
+        if (modelControllerUnavailTimes.unavailable.isEmpty && modelControllerPrefTimes.pref_work_times.isEmpty) {
+            while true {
+                var temp = timerange(start_time: c.date(from: components_st)!, end_time: c.date(from: components_st)!)
+                components_st.hour = components_st.hour!+modelControllerWork.hours
+                components_st.minute = components_st.minute!+modelControllerWork.minutes
+                temp.end_time = c.date(from: components_st)!
+                if components_st.hour! >= components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
+                    break
+                }
+                self.times.append(temp)
+            }
+        } else if (!modelControllerUnavailTimes.unavailable.isEmpty && modelControllerPrefTimes.pref_work_times.isEmpty) {
+            while true {
+                var temp = timerange(start_time: c.date(from: components_st)!, end_time: c.date(from: components_st)!)
+                components_st.hour = components_st.hour!+modelControllerWork.hours
+                components_st.minute = components_st.minute!+modelControllerWork.minutes
+                
+                temp.end_time = c.date(from: components_st)!
+                if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
+                    break
+                }
+                var broke = false
+                for uwu in modelControllerUnavailTimes.unavailable {
+                    if c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) > c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) <= c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
+                        broke = true
+                        break
+                    }
+                    
+                    if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) >= c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) < c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
+                        broke = true
+                        break
+                    }
+                    
+                    if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) <= c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) >= c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
+                        broke = true
+                        break
+                    }
+                }
+                if broke == false {
+                    self.times.append(temp)
+                }
+            }
+        } else if (!modelControllerPrefTimes.pref_work_times.isEmpty && modelControllerUnavailTimes.unavailable.isEmpty) {
+            while true {
+                var temp = timerange(start_time: c.date(from: components_st)!, end_time: c.date(from: components_st)!)
+                
+                components_st.hour = components_st.hour!+modelControllerWork.hours
+                components_st.minute = components_st.minute!+modelControllerWork.minutes
+                
+                temp.end_time = c.date(from: components_st)!
+                if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
+                    break
+                }
+                
+                var broke = false
+                for peep in modelControllerPrefTimes.pref_work_times {
+                    if c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) > c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) <= c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
+                        self.times.insert(temp, at: 0)
+                        broke = true
+                        break
+                    }
+                    
+                    if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) >= c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) < c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
+                        self.times.insert(temp, at: 0)
+                        broke = true
+                        break
+                    }
+                    
+                    if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) <= c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) >= c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
+                        self.times.insert(temp, at: 0)
+                        broke = true
+                        break
+                    }
+                }
+                if (broke == false) {
+                    self.times.append(temp)
+                }
+            }
+        } else {
+            while true {
+                var temp = timerange(start_time: c.date(from: components_st)!, end_time: c.date(from: components_st)!)
+                
+                components_st.hour = components_st.hour!+modelControllerWork.hours
+                components_st.minute = components_st.minute!+modelControllerWork.minutes
+                
+                temp.end_time = c.date(from: components_st)!
+                if components_st.hour! > components_end.hour! || (components_st.hour! == components_end.hour! && components_st.minute! > components_end.minute!) {
+                    break
+                }
+                var broke = false
+                for peep in modelControllerPrefTimes.pref_work_times {
+                    if c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) > c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) <= c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
+                        self.times.insert(temp, at: 0)
+                        broke = true
+                        break
+                    }
+                    
+                    if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) >= c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) < c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
+                        self.times.insert(temp, at: 0)
+                        broke = true
+                        break
+                    }
+                    
+                    if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) <= c.component(.hour, from: peep.start_time)*60+c.component(.minute, from: peep.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) >= c.component(.hour, from: peep.end_time)*60+c.component(.minute, from: peep.end_time) {
+                        self.times.insert(temp, at: 0)
+                        broke = true
+                        break
+                    }
+                }
+                
+                var brokeii = false
+                for uwu in modelControllerUnavailTimes.unavailable {
+                    if c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) > c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) <= c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
+                        brokeii = true
+                        break
+                    }
+                    
+                    if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) >= c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) < c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
+                        brokeii = true
+                        break
+                    }
+                    
+                    if c.component(.hour, from: temp.start_time)*60+c.component(.minute, from: temp.start_time) <= c.component(.hour, from: uwu.start_time)*60+c.component(.minute, from: uwu.start_time) && c.component(.hour, from: temp.end_time)*60+c.component(.minute, from: temp.end_time) >= c.component(.hour, from: uwu.end_time)*60+c.component(.minute, from: uwu.end_time) {
+                        brokeii = true
+                        break
+                    }
+                }
+                if broke == false && brokeii == false {
+                    self.times.append(temp)
+                }
+            }
+        }
+    }
+    
+    func updating(modelControllerWork: WorkPreferencesController, modelControllerAssignments: AssignmentController, modelControllerPrefTimes: PrefTimePreferencesController, modelControllerUnavailTimes: UnavailTimePreferencesController) {
+        guard let databasePath = databasePath else {
+            return
+        }
+        databasePath.removeValue()
+        update(modelControllerWork: modelControllerWork, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes)
+        
+        self.checks = [:]
+        
+        let dd = DateFormatter()
+        dd.dateStyle = .medium
+        dd.timeStyle = .medium
+
+        var completed: [Assignment] = []
+        var days = 0
+        while true {
+            var temp_assign: [Assignment] = []
+            for j in modelControllerAssignments.assignments {
+                if j.end_date > date(0, days) && !completed.contains(where: {$0 == j}) && j.time_worked_on < j.estimated_time {
+                    temp_assign.append(j)
+                }
+            }
+            if temp_assign.count == 0 {
+                break
+            }
+            temp_assign = temp_assign.sorted(by: {$0.end_date.compare($1.end_date) == .orderedAscending})
+            var min_left = modelControllerWork.time_work_sess
+
+            for t in temp_assign {
+                if ((checks[days] ?? []).count >= modelControllerWork.num_work_sess) {
+                    checks[days] = checks[days]!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
+                    days += 1
+                }
+                
+                var gt = 0
+                
+                while (min_left <= t.estimated_time-t.time_worked_on-gt) {
+                    gt += min_left
+                    min_left = modelControllerWork.time_work_sess
+                    
+                    var dateComponent = DateComponents()
+                    dateComponent.day = days
+                    for ii in 0..<times.count {
+                        let x = timerange(start_time: Calendar.current.date(byAdding: dateComponent, to: times[ii].start_time)!, end_time: Calendar.current.date(byAdding: dateComponent, to: times[ii].end_time)!)
+                        if x.start_time > Date() && !((self.checks[days] ?? []).contains(where: {$0.time.start_time == x.start_time && $0.time.end_time == x.end_time})) {
+                            print(ii)
+                            AddCheck(c: Check(title:t.assignment_name, isChecked: false, time: x, assignm: t), dd: days)
+                            break
+                        }
+                    }
+                    
+                    if ((checks[days] ?? []).count >= modelControllerWork.num_work_sess) {
+                        checks[days] = checks[days]!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
+                        days += 1
+                    }
+                }
+                
+                if (t.estimated_time-t.time_worked_on-gt == 0) {
+                    completed.append(t)
+                }
+                
+                if ((checks[days] ?? []).count >= modelControllerWork.num_work_sess) {
+                    checks[days] = checks[days]!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
+                    days += 1
+                }
+                
+                if (min_left > t.estimated_time-t.time_worked_on-gt && !completed.contains(where: {$0 == t})) {
+                    min_left -= t.estimated_time-t.time_worked_on-gt
+                    gt = t.estimated_time-t.time_worked_on
+                    
+                    var dateComponent = DateComponents()
+                    dateComponent.day = days
+                    
+                    for ii in 0..<times.count {
+                        let x = timerange(start_time: Calendar.current.date(byAdding: dateComponent, to: times[ii].start_time)!, end_time: Calendar.current.date(byAdding: dateComponent, to: times[ii].end_time)!)
+                        if x.start_time > Date() && !((self.checks[days] ?? []).contains(where: {$0.time.start_time == x.start_time && $0.time.end_time == x.end_time})) {
+                            AddCheck(c: Check(title:t.assignment_name, isChecked: false, time: x, assignm: t), dd: days)
+                            break
+                        }
+                    }
+                    
+                    completed.append(t)
+                    continue
+                }
+                
+                checks[days] = (checks[days] ?? [])!.sorted(by: {$0.time.end_time.compare($1.time.end_time) == .orderedAscending})
+            }
+        }
     }
 }
 
