@@ -119,7 +119,7 @@ extension Color {
 }
 
 struct IntroFlash: View {
-    @State private var textValue = "ProCal"
+    @State private var textValue = "Pro\nCal"
     @Binding var intro_ended: Bool
     
     var body: some View {
@@ -147,53 +147,55 @@ struct SignInPage: View {
     var body: some View {
         ZStack {
             VStack {
-                HStack(spacing: 7) {
-                    Button(action: {signvslog = !signvslog; username = ""; password = ""; re_password = ""}, label: {Text("sign up").font(.custom("MoreSugarThin", size: 20)).foregroundColor((signvslog == false) ? Color.blue : Color.gray)})
+                ScrollView {
+                    HStack(spacing: 7) {
+                        Button(action: {signvslog = !signvslog; username = ""; password = ""; re_password = ""}, label: {Text("sign up").font(.custom("MoreSugarThin", size: 20)).foregroundColor((signvslog == false) ? Color.blue : Color.gray)})
+                        
+                        Text ("  |  ").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
+                        
+                        Button(action: {signvslog = !signvslog; username = ""; password = ""; re_password = ""}, label: {Text("log in").font(.custom("MoreSugarThin", size: 20)).foregroundColor((signvslog == true) ? Color.blue : Color.gray)})
+                    }
                     
-                    Text ("  |  ").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
+                    if (signvslog == false) {
+                        Text("welcome!").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
+                        
+                        TextField("", text: $username, prompt: Text("username").foregroundColor(Color(hex: "E8E0D5"))).foregroundColor(Color.blue).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20))
+                        
+                        Divider().frame(height: 1).padding(.horizontal, 30)
+                        
+                        SecureField("", text: $password, prompt: Text("password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
+                        
+                        Divider().frame(height: 1).padding(.horizontal, 30)
+                        
+                        SecureField("", text: $re_password, prompt: Text("confirm password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
+                        
+                        Divider().frame(height: 1).padding(.horizontal, 30)
+                        
+                        
+                        Text("sign up").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color(hex: "#FFFFFF")).frame(width: 300, height: 40).background(RoundedRectangle(cornerRadius: 30).fill(Color.blue).frame(width: 300, height: 40)).padding(.top, 30)
+                    } else {
+                        Text("hi!").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
+                        
+                        TextField("", text: $username, prompt: Text("username").foregroundColor(Color(hex: "#E8E0D5"))).foregroundColor(Color.blue).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20))
+                        
+                        Divider().frame(height: 1).padding(.horizontal, 30)
+                        
+                        SecureField("", text: $password, prompt: Text("password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
+                        
+                        Divider().frame(height: 1).padding(.horizontal, 30)
+                        
+                        Text("log in").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color(hex: "#FFFFFF")).frame(width: 300, height: 40).background(RoundedRectangle(cornerRadius: 30).fill(Color.blue).frame(width: 300, height: 40)).padding(.top, 30)
+                    }
                     
-                    Button(action: {signvslog = !signvslog; username = ""; password = ""; re_password = ""}, label: {Text("log in").font(.custom("MoreSugarThin", size: 20)).foregroundColor((signvslog == true) ? Color.blue : Color.gray)})
-                }
-                
-                if (signvslog == false) {
-                    Text("welcome!").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
+                    Text("or use").font(.custom("MoreSugarThin", size: 17)).padding(.top, 20).foregroundColor(Color.blue)
                     
-                    TextField("", text: $username, prompt: Text("username").foregroundColor(Color(hex: "E8E0D5"))).foregroundColor(Color.blue).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20))
-                    
-                    Divider().frame(height: 1).padding(.horizontal, 30)
-                    
-                    SecureField("", text: $password, prompt: Text("password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
-                    
-                    Divider().frame(height: 1).padding(.horizontal, 30)
-                    
-                    SecureField("", text: $re_password, prompt: Text("confirm password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
-                    
-                    Divider().frame(height: 1).padding(.horizontal, 30)
-                    
-                    
-                    Text("sign up").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color(hex: "#FFFFFF")).frame(width: 300, height: 40).background(RoundedRectangle(cornerRadius: 30).fill(Color.blue).frame(width: 300, height: 40)).padding(.top, 30)
-                } else {
-                    Text("hi!").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color.blue)
-                    
-                    TextField("", text: $username, prompt: Text("username").foregroundColor(Color(hex: "#E8E0D5"))).foregroundColor(Color.blue).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20))
-                    
-                    Divider().frame(height: 1).padding(.horizontal, 30)
-                    
-                    SecureField("", text: $password, prompt: Text("password").foregroundColor(Color(hex: "#E8E0D5"))).padding(.horizontal, 30).padding(.top, 20).autocapitalization(.none).font(.custom("MoreSugarThin", size: 20)).foregroundColor(Color.blue)
-                    
-                    Divider().frame(height: 1).padding(.horizontal, 30)
-                    
-                    Text("log in").font(.custom("MoreSugarThin", size: 30)).foregroundColor(Color(hex: "#FFFFFF")).frame(width: 300, height: 40).background(RoundedRectangle(cornerRadius: 30).fill(Color.blue).frame(width: 300, height: 40)).padding(.top, 30)
-                }
-                
-                Text("or use").font(.custom("MoreSugarThin", size: 17)).padding(.top, 20).foregroundColor(Color.blue)
-                
-                HStack(spacing: 15){
-                    Button(action: viewModel.signIn, label: {
-                        Image("apple").resizable().padding().foregroundColor(.white).clipShape(Circle()).frame(width: 70, height: 75)})
-                    
-                    Button(action: viewModel.signIn, label: {
-                        Image("google").resizable().padding().foregroundColor(.white).clipShape(Circle()).frame(width: 75, height: 75)})
+                    HStack(spacing: 15){
+                        Button(action: viewModel.signIn, label: {
+                            Image("apple").resizable().padding().foregroundColor(.white).clipShape(Circle()).frame(width: 70, height: 75)})
+                        
+                        Button(action: viewModel.signIn, label: {
+                            Image("google").resizable().padding().foregroundColor(.white).clipShape(Circle()).frame(width: 75, height: 75)})
+                    }
                 }
             }
         }
@@ -628,7 +630,8 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 15) {
                     HStack {
-                        Text("# of work sessions per day:").fontWeight(.thin)
+                        Spacer()
+                        Text("# of work sessions per day: ").fontWeight(.thin)
                         Spacer()
                         if !self.pressed {
                             Button (action: {self.pressed=(!self.pressed);}) {
@@ -647,8 +650,10 @@ struct SettingsView: View {
                                 }
                             }.onAppear{self.pressed1 = false;}
                         }
-                    }.padding(.horizontal, UIScreen.main.bounds.width/30)
+                        Spacer()
+                    } .padding(.horizontal)//.padding(.horizontal, UIScreen.main.bounds.width/25)
                     HStack {
+                        Spacer()
                         Text("average work session length:").fontWeight(.thin)
                         Spacer()
                         if !self.pressed1 {
@@ -675,47 +680,58 @@ struct SettingsView: View {
                                 }
                             }.onAppear{self.pressed = false;}
                         }
-                    }.padding(.horizontal, UIScreen.main.bounds.width/30)
+                        Spacer()
+                    } .padding(.horizontal)//.padding(.horizontal, UIScreen.main.bounds.width/25)
                     
                     if !self.modelControllerWorkPreferences.sleep_yes {
                         HStack {
-                            Text("sleeping hours (opt.)").fontWeight(.thin)
+                            Spacer()
+                            Text("sleeping hours (opt.): ").fontWeight(.thin)
                             Spacer()
                             Button(action: {self.modelControllerWorkPreferences.sleep_yes = true}) {
                                 Text("+").fontWeight(.thin).font(.title)
                             }
-                        }.padding(.horizontal, UIScreen.main.bounds.width/30)
+                            Spacer()
+                        } .padding(.horizontal)//.padding(.horizontal, UIScreen.main.bounds.width/25)
                     } else {
                         VStack {
                             HStack {
+                                Spacer()
                                 Text("sleeping hours: ").fontWeight(.thin)
                                 Spacer()
                                 Button(action: {self.modelControllerWorkPreferences.sleep_yes = false}) {
                                     Text("-").fontWeight(.thin).font(.title)
                                 }
-                            }.padding(.horizontal, UIScreen.main.bounds.width/30)
-                            HStack {
-                                Text("from").fontWeight(.thin)
+                                Spacer()
+                            }//.padding(.horizontal, UIScreen.main.bounds.width/25)
+                            .padding(.horizontal)
+                            HStack (spacing: 0) {
+                                Spacer()
+                                Text(" from").fontWeight(.thin)
                                 Spacer()
                                 DatePicker("", selection: $modelControllerWorkPreferences.sleeping_hours.start_time, displayedComponents: .hourAndMinute)
-                                Text("  to").fontWeight(.thin)
+                                Text(" to").fontWeight(.thin)
                                 DatePicker("", selection: $modelControllerWorkPreferences.sleeping_hours.end_time, displayedComponents: .hourAndMinute)
-                            }.padding(.horizontal, UIScreen.main.bounds.width/15)
+                                Spacer()
+                            } .padding(.horizontal)//.padding(.horizontal, UIScreen.main.bounds.width/15)
                         }
                     }
                     
                     VStack(alignment: .leading) {
                         if self.modelControllerPrefTimes.pref_work_times.count == 0 {
                             HStack {
-                                Text("pref. working times (opt.)").fontWeight(.thin)
+                                Spacer()
+                                Text("pref. working times (opt.): ").fontWeight(.thin)
                                 Spacer()
                                 Button(action: {self.modelControllerPrefTimes.pref_work_times.append(timerange(start_time: Date(), end_time: Date()))}) {
                                     Text("+").fontWeight(.thin).font(.title)
                                 }
+                                Spacer()
                             }
                         } else {
                             HStack {
-                                Text("pref. working times (up to three): ").fontWeight(.thin)
+                                Spacer()
+                                Text(" pref. working times (up to three): ").fontWeight(.thin)
                                 Spacer()
                                 Button(action: {
                                     if self.modelControllerPrefTimes.pref_work_times.count < 3 {
@@ -723,40 +739,46 @@ struct SettingsView: View {
                                     }
                                     }) {
                                     if self.modelControllerPrefTimes.pref_work_times.count < 3 {
-                                        Text("+").fontWeight(.thin).font(.title).foregroundColor(Color.blue)
+                                        Text("+ ").fontWeight(.thin).font(.title).foregroundColor(Color.blue)
                                     } else {
-                                        Text("+").fontWeight(.thin).font(.title).foregroundColor(Color.gray)
+                                        Text("+ ").fontWeight(.thin).font(.title).foregroundColor(Color.gray)
                                     }
                                 }
+                                Spacer()
                             }
                             ForEach(0...self.modelControllerPrefTimes.pref_work_times.count-1, id: \.self) { pref in
-                                HStack {
-                                    Text("from").fontWeight(.thin)
+                                HStack (spacing: 0) {
+                                    Spacer()
+                                    Text(" from").fontWeight(.thin)
                                     DatePicker("", selection: $modelControllerPrefTimes.pref_work_times[pref].start_time, displayedComponents: .hourAndMinute)
-                                    Text("  to").fontWeight(.thin)
+                                    Text(" to").fontWeight(.thin)
                                     DatePicker("", selection: $modelControllerPrefTimes.pref_work_times[pref].end_time, displayedComponents: .hourAndMinute)
                                     Spacer()
                                     Button(action: {
                                         self.modelControllerPrefTimes.pref_work_times.remove(at: pref)
                                     }) {
-                                        Text("-").fontWeight(.thin).font(.title)
+                                        Text("- ").fontWeight(.thin).font(.title)
                                     }
+                                    Spacer()
                                 }
                             }
                         }
-                    }.padding(.horizontal, UIScreen.main.bounds.width/30)
+                    } .padding(.horizontal)//.padding(.horizontal, UIScreen.main.bounds.width/25)
                     
                     VStack(alignment: .leading) {
                         if self.modelControllerUnavailTimes.unavailable.count == 0 {
                             HStack {
-                                Text("daily unavaliable times (opt.)").fontWeight(.thin)
+                                Spacer()
+                                Text("daily unavaliable times (opt.): ").fontWeight(.thin)
                                 Spacer()
                                 Button(action: {self.modelControllerUnavailTimes.unavailable.append(timerange(start_time: Date(), end_time: Date()))}) {
                                     Text("+").fontWeight(.thin).font(.title)
                                 }
+                                Spacer()
                             }
                         } else {
                             HStack {
+                                Spacer()
                                 Text("daily unavaliable times (up to five): ").fontWeight(.thin)
                                 Spacer()
                                 Button(action: {
@@ -770,23 +792,27 @@ struct SettingsView: View {
                                         Text("+").fontWeight(.thin).font(.title).foregroundColor(Color.gray)
                                     }
                                 }
+                                Spacer()
                             }
+                            //mark
                             ForEach(0...self.modelControllerUnavailTimes.unavailable.count-1, id: \.self) { pref in
-                                HStack {
-                                    Text("from").fontWeight(.thin)
+                                HStack (spacing: 0) {
+                                    Spacer()
+                                    Text(" from").fontWeight(.thin)
                                     DatePicker("", selection: $modelControllerUnavailTimes.unavailable[pref].start_time, displayedComponents: .hourAndMinute)
-                                    Text("  to").fontWeight(.thin)
+                                    Text(" to").fontWeight(.thin)
                                     DatePicker("", selection: $modelControllerUnavailTimes.unavailable[pref].end_time, displayedComponents: .hourAndMinute)
                                     Spacer()
                                     Button(action: {
                                         self.modelControllerUnavailTimes.unavailable.remove(at:pref)
                                     }) {
-                                        Text("-").fontWeight(.thin).font(.title)
+                                        Text("- ").fontWeight(.thin).font(.title)
                                     }
+                                    Spacer()
                                 }
                             }
                         }
-                    }.padding(.horizontal, UIScreen.main.bounds.width/30)
+                    } .padding(.horizontal)//.padding(.horizontal, UIScreen.main.bounds.width/25)
                     
                     Button(action: {
                         self.inval = ""
@@ -818,7 +844,7 @@ struct SettingsView: View {
                             Text("update settings").fontWeight(.thin).foregroundColor(.black).overlay(RoundedRectangle(cornerRadius: 20).stroke(.black, lineWidth: 0.5).frame(width:150, height:25))
                         }
                     }
-                }.padding(.horizontal, UIScreen.main.bounds.width/30)
+                } .padding(.horizontal)//.padding(.horizontal, UIScreen.main.bounds.width / 20)
             }
         }.padding(.top).onAppear{modelControllerWorkPreferences.listenForChange();modelControllerUnavailTimes.listenForUn();modelControllerPrefTimes.listenForTimes();CheckController.updating(modelControllerWork: modelControllerWorkPreferences, modelControllerAssignments: modelControllerAssignments,modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes)}.onDisappear{modelControllerWorkPreferences.stopListeningChange();modelControllerUnavailTimes.stopListeningUn();modelControllerPrefTimes.stopListeningTimes()}
     }
@@ -1025,158 +1051,160 @@ struct CalendarView: View {
     
     var body: some View {
         VStack (spacing: 15) {
-            HStack {
-                Button(action: {viewModel.signOut()}) {
-                    ZStack{
-                        Text("log out").fontWeight(.thin).padding(.leading, (UIScreen.main.bounds.width-300)/2)
+            ScrollView {
+                HStack {
+                    Button(action: {viewModel.signOut()}) {
+                        ZStack{
+                            Text("log out").fontWeight(.thin).padding(.leading, (UIScreen.main.bounds.width-300)/2)
+                        }
+                    }
+                    Spacer()
+                    NetworkImage(url: user?.profile?.imageURL(withDimension: 100)).padding(.trailing, (UIScreen.main.bounds.width-300)/3).frame(width: 55, height: 55, alignment: .center).cornerRadius(100)
+                }
+                HStack {
+                    Button(action: {
+                        var comps = DateComponents()
+                        comps.second = 0
+                        comps.minute = 0
+                        comps.hour = 0
+                        comps.day = getDay(current_month, current_day)
+                        comps.month = getMonth(current_month, current_day)
+                        comps.year = getYear(current_month, current_day)-1
+                        
+                        var today = DateComponents()
+                        today.second = 0
+                        today.minute = 0
+                        today.hour = 0
+                        today.day = getDay(0,0)
+                        today.month = getMonth(0, 0)
+                        today.year = getYear(0, 0)
+                        self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                        self.current_month = 0
+                    }) {
+                        ZStack{
+                            Text("<<").fontWeight(.ultraLight).foregroundColor(.black)
+                        }
+                    }
+                    Text("\(String(getYear(current_month, current_day)))").font(.largeTitle).fontWeight(.thin)
+                    Button(action: {
+                        var comps = DateComponents()
+                        comps.second = 0
+                        comps.minute = 0
+                        comps.hour = 0
+                        comps.day = getDay(current_month, current_day)
+                        comps.month = getMonth(current_month, current_day)
+                        comps.year = getYear(current_month, current_day)+1
+                        
+                        var today = DateComponents()
+                        today.second = 0
+                        today.minute = 0
+                        today.hour = 0
+                        today.day = getDay(0,0)
+                        today.month = getMonth(0, 0)
+                        today.year = getYear(0, 0)
+                        self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                        self.current_month = 0
+                    }) {
+                        ZStack{
+                            Text(">>").fontWeight(.ultraLight).foregroundColor(.black)
+                        }
                     }
                 }
-                Spacer()
-                NetworkImage(url: user?.profile?.imageURL(withDimension: 100)).padding(.trailing, (UIScreen.main.bounds.width-300)/3).frame(width: 55, height: 55, alignment: .center).cornerRadius(100)
-            }
-            HStack {
-                Button(action: {
-                    var comps = DateComponents()
-                    comps.second = 0
-                    comps.minute = 0
-                    comps.hour = 0
-                    comps.day = getDay(current_month, current_day)
-                    comps.month = getMonth(current_month, current_day)
-                    comps.year = getYear(current_month, current_day)-1
+                
+                HStack {
+                    Button(action: {
+                        var comps = DateComponents()
+                        comps.second = 0
+                        comps.minute = 0
+                        comps.hour = 0
+                        comps.day = getDay(current_month, current_day)
+                        comps.month = getMonth(current_month, current_day)-1
+                        comps.year = getYear(current_month, current_day)
+                        
+                        var today = DateComponents()
+                        today.second = 0
+                        today.minute = 0
+                        today.hour = 0
+                        today.day = getDay(0,0)
+                        today.month = getMonth(0, 0)
+                        today.year = getYear(0, 0)
+                        self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                        self.current_month = 0
+                    }) {
+                        ZStack{
+                            Text("<").fontWeight(.ultraLight).foregroundColor(.black)
+                        }
+                    }
+                    Text("\(month_names[mod(getMonth(current_month, current_day)-1, 12)])").font(.title).fontWeight(.ultraLight)
+                    Button(action: {
+                        var comps = DateComponents()
+                        comps.second = 0
+                        comps.minute = 0
+                        comps.hour = 0
+                        comps.day = getDay(current_month, current_day)
+                        comps.month = getMonth(current_month, current_day)+1
+                        comps.year = getYear(current_month, current_day)
+                        
+                        var today = DateComponents()
+                        today.second = 0
+                        today.minute = 0
+                        today.hour = 0
+                        today.day = getDay(0,0)
+                        today.month = getMonth(0, 0)
+                        today.year = getYear(0, 0)
+                        self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                        self.current_month = 0
+                    }) {
+                        ZStack{
+                            Text(">").fontWeight(.ultraLight).foregroundColor(.black)
+                        }
+                    }
+                }
+                
+                LazyVGrid(columns: columns, spacing: UIScreen.main.bounds.width/30) {
+                    ForEach((0...6), id: \.self) {
+                        i in Text("\(days[i])").font(.title2).fontWeight(.thin)
+                    }
                     
-                    var today = DateComponents()
-                    today.second = 0
-                    today.minute = 0
-                    today.hour = 0
-                    today.day = getDay(0,0)
-                    today.month = getMonth(0, 0)
-                    today.year = getYear(0, 0)
-                    self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
-                    self.current_month = 0
-                }) {
-                    ZStack{
-                        Text("<<").fontWeight(.ultraLight).foregroundColor(.black)
-                    }
-                }
-                Text("\(String(getYear(current_month, current_day)))").font(.largeTitle).fontWeight(.thin)
-                Button(action: {
-                    var comps = DateComponents()
-                    comps.second = 0
-                    comps.minute = 0
-                    comps.hour = 0
-                    comps.day = getDay(current_month, current_day)
-                    comps.month = getMonth(current_month, current_day)
-                    comps.year = getYear(current_month, current_day)+1
-                    
-                    var today = DateComponents()
-                    today.second = 0
-                    today.minute = 0
-                    today.hour = 0
-                    today.day = getDay(0,0)
-                    today.month = getMonth(0, 0)
-                    today.year = getYear(0, 0)
-                    self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
-                    self.current_month = 0
-                }) {
-                    ZStack{
-                        Text(">>").fontWeight(.ultraLight).foregroundColor(.black)
-                    }
-                }
-            }
-            
-            HStack {
-                Button(action: {
-                    var comps = DateComponents()
-                    comps.second = 0
-                    comps.minute = 0
-                    comps.hour = 0
-                    comps.day = getDay(current_month, current_day)
-                    comps.month = getMonth(current_month, current_day)-1
-                    comps.year = getYear(current_month, current_day)
-                    
-                    var today = DateComponents()
-                    today.second = 0
-                    today.minute = 0
-                    today.hour = 0
-                    today.day = getDay(0,0)
-                    today.month = getMonth(0, 0)
-                    today.year = getYear(0, 0)
-                    self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
-                    self.current_month = 0
-                }) {
-                    ZStack{
-                        Text("<").fontWeight(.ultraLight).foregroundColor(.black)
-                    }
-                }
-                Text("\(month_names[mod(getMonth(current_month, current_day)-1, 12)])").font(.title).fontWeight(.ultraLight)
-                Button(action: {
-                    var comps = DateComponents()
-                    comps.second = 0
-                    comps.minute = 0
-                    comps.hour = 0
-                    comps.day = getDay(current_month, current_day)
-                    comps.month = getMonth(current_month, current_day)+1
-                    comps.year = getYear(current_month, current_day)
-                    
-                    var today = DateComponents()
-                    today.second = 0
-                    today.minute = 0
-                    today.hour = 0
-                    today.day = getDay(0,0)
-                    today.month = getMonth(0, 0)
-                    today.year = getYear(0, 0)
-                    self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
-                    self.current_month = 0
-                }) {
-                    ZStack{
-                        Text(">").fontWeight(.ultraLight).foregroundColor(.black)
-                    }
-                }
-            }
-            
-            LazyVGrid(columns: columns, spacing: UIScreen.main.bounds.width/30) {
-                ForEach((0...6), id: \.self) {
-                    i in Text("\(days[i])").font(.title2).fontWeight(.thin)
-                }
- 
-                ForEach((7...month_days(current_month, current_day)+getStartMonthPos(current_month, current_day)+6), id: \.self) { i in
-                    if (i < 7+getStartMonthPos(current_month, current_day)) {
-                        Button(action: {}) {
-                            ZStack{
-                                Circle().frame(width: UIScreen.main.bounds.width/10, height:   UIScreen.main.bounds.width/10).foregroundColor(.white)
-                            }
-                        }.buttonStyle(PlainButtonStyle())
-                    } else {
-                        Button(action: {
-                            self.button_pressed=true;
-                            var comps = DateComponents()
-                            comps.second = 0
-                            comps.minute = 0
-                            comps.hour = 0
-                            comps.day = i-6-getStartMonthPos(current_month, current_day)
-                            comps.month = getMonth(current_month, current_day)
-                            comps.year = getYear(current_month, current_day)
-                            
-                            var today = DateComponents()
-                            today.second = 0
-                            today.minute = 0
-                            today.hour = 0
-                            today.day = getDay(0,0)
-                            today.month = getMonth(0, 0)
-                            today.year = getYear(0, 0)
-                            self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
-                            self.current_month = 0
-                        }) {
-                            ZStack{
-                                if i-6-getStartMonthPos(current_month, current_day) == getDay(0, 0) && getMonth(current_month, current_day) == getMonth(0, 0) && getYear(current_month, current_day) == getYear(0, 0) {
-                                    Circle().frame(width: UIScreen.main.bounds.width/10, height: UIScreen.main.bounds.width/10).foregroundColor(.blue).overlay(Circle().stroke(.black, lineWidth: 0.5)
-                                    )
-                                } else {
-                                    Circle().frame(width: UIScreen.main.bounds.width/10, height: UIScreen.main.bounds.width/10).foregroundColor(.white).overlay(Circle().stroke(.black, lineWidth: 0.5))
+                    ForEach((7...month_days(current_month, current_day)+getStartMonthPos(current_month, current_day)+6), id: \.self) { i in
+                        if (i < 7+getStartMonthPos(current_month, current_day)) {
+                            Button(action: {}) {
+                                ZStack{
+                                    Circle().frame(width: UIScreen.main.bounds.width/10, height:   UIScreen.main.bounds.width/10).foregroundColor(.white)
                                 }
-                                Text("\(i-6-getStartMonthPos(current_month, current_day))").fontWeight(.ultraLight)
-                            }
-                        }.buttonStyle(PlainButtonStyle())
+                            }.buttonStyle(PlainButtonStyle())
+                        } else {
+                            Button(action: {
+                                self.button_pressed=true;
+                                var comps = DateComponents()
+                                comps.second = 0
+                                comps.minute = 0
+                                comps.hour = 0
+                                comps.day = i-6-getStartMonthPos(current_month, current_day)
+                                comps.month = getMonth(current_month, current_day)
+                                comps.year = getYear(current_month, current_day)
+                                
+                                var today = DateComponents()
+                                today.second = 0
+                                today.minute = 0
+                                today.hour = 0
+                                today.day = getDay(0,0)
+                                today.month = getMonth(0, 0)
+                                today.year = getYear(0, 0)
+                                self.current_day = Calendar.current.dateComponents([.day], from: today, to: comps).day!
+                                self.current_month = 0
+                            }) {
+                                ZStack{
+                                    if i-6-getStartMonthPos(current_month, current_day) == getDay(0, 0) && getMonth(current_month, current_day) == getMonth(0, 0) && getYear(current_month, current_day) == getYear(0, 0) {
+                                        Circle().frame(width: UIScreen.main.bounds.width/10, height: UIScreen.main.bounds.width/10).foregroundColor(Color("LightBlue")).overlay(Circle().stroke(.black, lineWidth: 0.5)
+                                        )
+                                    } else {
+                                        Circle().frame(width: UIScreen.main.bounds.width/10, height: UIScreen.main.bounds.width/10).foregroundColor(.white).overlay(Circle().stroke(.black, lineWidth: 0.5))
+                                    }
+                                    Text("\(i-6-getStartMonthPos(current_month, current_day))").fontWeight(.ultraLight)
+                                }
+                            }.buttonStyle(PlainButtonStyle())
+                        }
                     }
                 }
             }
@@ -1216,6 +1244,8 @@ struct ContentView: View {
     @ObservedObject var modelControllerPrefTimes = PrefTimePreferencesController()
     @ObservedObject var modelControllerUnavailTimes = UnavailTimePreferencesController()
     @ObservedObject var modelCheckController = CheckController()
+    @ObservedObject var sleepManager = SleepDataPointsManager()
+    @ObservedObject var socialManager = SocialDataPointsManager()
     
     var body: some View {
         if (intro_ended) {
@@ -1239,8 +1269,16 @@ struct ContentView: View {
                             Label("calendar", systemImage: "calendar")
                         }
                         
+                        trackerView(sleepManager: sleepManager, socialManager: socialManager).tabItem {
+                            Label("tracker", systemImage: "chart.line.uptrend.xyaxis.circle")
+                        }
+                        
                         ScheduleView(event_add_button: $event_add_button, assignment_add_button: $assignment_add_button, button_pressed: $button_pressed, special: $special, id: $id, modelControllerEvents: modelControllerEvents, modelControllerAssignments: modelControllerAssignments, modelControllerWork: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, CheckController: modelCheckController).tabItem {
                             Label("to-do", systemImage: "list.bullet")
+                        }
+                        
+                        BadgeView().tabItem {
+                            Label("badges", systemImage: "firewall")
                         }
                         
                         SettingsView(modelControllerWorkPreferences: modelControllerWorkPreferences, modelControllerPrefTimes: modelControllerPrefTimes, modelControllerUnavailTimes: modelControllerUnavailTimes, modelControllerAssignments: modelControllerAssignments, CheckController: modelCheckController).tabItem {
